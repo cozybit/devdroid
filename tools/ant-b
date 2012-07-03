@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# GOAL: this scripts overwrites the basic ant command, in order to build any
+# android project using the development keys.
+#
+# It requires the build-tools project/repo, available in burning-chrome.
+
+# allow user to override configuration file in environment
+[ -z ${ANT_CONF} ] && ANT_CONF=${MESHDROID}/config/ant.conf
+
+# source the config variables
+if [ -e ${ANT_CONF} ]; then
+        source ${ANT_CONF}
+else
+        die "ERROR: config file ${ANT_CONF} does not exist. Aborting."
+fi
+
+ant -Dkey.store.password=${STORE_PSWD} -Dkey.alias.password=${ALIAS_PSWD} -Dbuild.dir=${BUILD_DIR} -Dkey.alias=${KEY_ALIAS} -Dkey.store=${KEY_STORE_PATH} -Dsdk.dir=${SDK_DIR} $*

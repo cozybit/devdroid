@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# GOAL: add extra information to the version name of the application. This way
+# it will be easier to identify different build versions while development is
+# happening.
+# 
+# NOTES: This script uses the ant-b script in order to build the android
+# projects with the right keys, etc. You need to install it in the ~/bin folder
+#
+# author: Guillermo A. Nunez <guillermo@cozybit.com>
+
+# source common functions and parse options
+source $(dirname ${0})/common.sh
+
+VER_ATTR=versionName
+FILE=AndroidManifest.xml
+[ -f ${FILE} ] || die "ERROR: ${FILE} not found. Aborting."
+VERSION_NAME=`grep ${VER_ATTR} ${FILE} | cut -d"\"" -f2`
+
+[ "${VERSION_NAME}" == "" ] && die "ERROR: could not get the version name from the Android Manifest. Aborting."
+
+# check if version name is localized
+if [ "${VERSION_NAME}" != "${VERSION_NAME/\@string\//}" ]; then
+    #find the right file with the tag, and get its real value
+    FILE=`grep -r name=\"${VERSION_NAME/\@string\//}\" * | cut -d":" -f1`
+    VERSION_NAME=`grep ${VERSION_NAME/\@string\//} ${FILE} | cut -d">" -f2 | cut -d"<" -f1`
+fi
+
+# escape all the / in the name
+VERSION_NAME=${VERSION_NAME/\//\\\/}
+
+# get all the info related to the git repo
+HEAD_SHA=`git log --oneline | head -n1 | cut -d" " -f1`
+[ "${HEAD_SHA}" == "" ] && die "ERROR: could not get HEAD's sha. Aborting."
+BRANCH_NAME=`git.branch`
+[ "${BRANCH_NAME}" == "" ] && die "ERROR: could not get the name of the current branch. Aborting."
+# check if there is uncommited changes
+[ "`git status -s | grep -v "?? "`" != "" ] && BRANCH_NAME="${BRANCH_NAME}+dirty"
+
+# create a copy of the file before modifying it
+cp ${FILE} /tmp/ || die "ERROR: could not create a copy of ${FILE} in the /tmp folder. Aborting."
+
+TIME=`date +"%m-%d-%y_%H:%M"`
+# extend the version name. Format: <original_version_name>-dev-<branch_name>-<heads_sha1>-<user>-<date_time>
+sed -i -e "s/${VER_ATTR}=\"${VERSION_NAME}\"/${VER_ATTR}=\"${VERSION_NAME}-dev-${BRANCH_NAME}-${HEAD_SHA} ${USER}@${HOSTNAME} ${TIME}\"/" ${FILE} || \
+	die "ERROR: could not extend the version name in ${FILE}. Aborting."
+
+# build the app 
+ant-b $*
+
+# restore the original file (even if the build fails)
+mv /tmp/$(basename ${FILE}) ${FILE}

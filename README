@@ -1,0 +1,36 @@
+WHAT IS THIS?
+#############
+
+This is a first attempt to create a framework that helps deploy and debug an
+android system and apps in multiple android devices.
+
+It also has the flexibility of working with external projects that are not
+included/integrated in the AOSP.
+
+It was born as a set of scripts that help build and flash the Android
+images on the phones, but it's moving to something more serious and useful.
+Therefore it is still under heavy development.
+
+DESCRIPTION
+###########
+
++ aosp/
++ config/
++ other_apks/
++ releases/
++ scripts/
+
+  A set of scripts that make the flashing/ process easy and simple.
+
++ tools/
+
+  A set of scripts used for very common operations.
+
+INSTRUCTIONS
+############
+
+In order to use this framework, you need to follow these three steps:
+
+0 - Edit and customize the config files available in the config/ folder.
+1 - Add the "MESHDROID=path_to_this_project" variable to your bashrc.
+3 - Add ${MESHDROID}/tools to your path.

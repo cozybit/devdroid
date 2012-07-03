@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# adbs: super adb
+#
+# GOAL:  allow to execute adb commands in multiple devices in an easy way.
+# adbs does not care about the type of adb connection (USB or TCP). Also, adbs
+# replaces the annoyinig serial numbers with device names.
+#
+# This script requires the device.lst (file that has all the info of one
+# device: serial id, name, ip).
+#
+# author: Guillermo A. Nunez <guillermo@cozybit.com>
+
+# source common functions and parse options
+source `dirname ${0}`/common.sh
+
+# parse the incoming parameters
+usage="$0 [-s <device1>,<device2>,.. or all ] <adb_commands and options>"
+
+if [ "${1}" != "-s" ]; then
+	echo "ERROR: Please, specify target devices. Aborting."
+	echo ${usage}
+	exit 1;
+else
+	shift 1;
+	DEVICES=${1}
+	shift 1;
+fi
+
+[ -z "${DEVICES}"  ] && die "ERROR: specify target devices.  Aborting."
+
+if [ "${DEVICES}" == "all" ]; then
+        DEVICES=`get_all_connected`
+        [ -z "${DEVICES}" ] && die "ERROR: no devices connected. Aborting."
+else
+        DEVICES=${DEVICES//,/" "}
+fi
+
+# iterate through all the devices
+for dev in ${DEVICES}; do
+        id=`name2id ${dev}`
+        #verify the device name first
+        if [ -z "${id}" ]; then
+                echo "ERROR: device ${dev} does not exist in device.lst. Skipping device."
+        else
+                adbs ${id} ${*}
+        fi
+done

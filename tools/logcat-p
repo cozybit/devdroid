@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# NOTE: not super well tested
+
+# Source common functions and parse options
+source `dirname ${0}`/common.sh
+
+ADB_PARAMS="-s "
+
+# parse the incoming parameters
+usage="$0 [ -s <device_id> ] [ -p <package_name> ] [ -h ]"
+while getopts "s:p:h" options; do
+    case $options in
+        s ) ID=${OPTARG};;
+        p ) PKG_NAME=${OPTARG};;
+        h ) echo ${usage}
+            exit 1;;
+        * ) echo ${usage}
+            exit 1;;
+    esac
+done
+
+[ -z "${PKG_NAME}" ] && { echo "Please, provide a package name. Aborting."; echo ${usage}; exit -1; }
+ 
+if [ -z "${ID}" ]; then
+	ADB_PARAMS=""
+	DEVICES=`adb devices | grep -v "List of" | grep -v '^$' -c`
+	[ ${DEVICES} -gt 1 ] && { echo "ERROR: You have more than one device connected. Please, use the -s parameter. Aborting."; echo ${usage}; exit -1; }
+elif ! is_adb_mode ${ID}; then
+	echo "ERROR: The device ${ID} is not connected to adb (or is a wrong ID). Aborting."
+	exit -1
+fi
+
+APP_PID=`adb ${ADB_PARAMS} ${ID} shell ps | grep ${PKG_NAME} | awk '{print $2}'`
+
+[ -z "${APP_PID}" ] && { echo "The package ${PKG_NAME} is not ins the list of running process. Launch the application first (or make sure it's the right package name). Aborting."; exit -1; }
+
+adb ${ADB_PARAMS} ${ID} logcat | grep ${APP_PID}
