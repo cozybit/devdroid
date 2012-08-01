@@ -46,6 +46,7 @@ function tearup () {
 	sudo ip address add dev ${MESH_IFACE} ${LOCAL_IP}/${NETMASK} broadcast ${BCAST_IP} || \
 		die "ERROR: problem when configuring the ${MESH_IFACE} interface. Aborting." 
 	sudo ip link set dev ${MESH_IFACE} up || die "ERROR: problem when bringing the ${MESH_IFACE} interface up. Aborting."
+	[ -n  "${TTL}" ] && sudo iw dev ${MESH_IFACE} set mesh_param mesh_ttl ${TTL}
 	sudo iw ${MESH_IFACE} mesh join ${MESH_ID} vendor_sync on || die "ERROR: problem joining the mesh ${MESH_ID}. Aborting."
 }
 
@@ -63,11 +64,12 @@ function teardown () {
 MESH_IFACE=mesh0
 NETMASK=8
 BCAST_IP=10.255.255.255
+MCAST_IP=225.0.0.0
 FLUSH=0
 
 # parse the incoming parameters
-usage="$0 [-a <up/down> ] [ -i <meshid> ] [ -c <channel> ] [ -f (flush) ] [ -t <ht_mode> ] [ -w <w_interface> ] [-h]"
-while getopts "a:i:c:ft:w:h" options; do
+usage="$0 [-a <up/down> ] [ -i <meshid> ] [ -c <channel> ] [ -f (flush) ] [ -t <ht_mode> ] [ -w <w_interface> ] [ -r <retrasnmissions/TTL> ]  [-h]"
+while getopts "a:i:c:ft:w:hr:" options; do
     case $options in
 	a ) PARAM=${OPTARG};;
 	i ) MESH_ID=${OPTARG};;
@@ -75,9 +77,11 @@ while getopts "a:i:c:ft:w:h" options; do
 	f ) FLUSH=1;;
         t ) HT_MODE=${OPTARG};;
 	w ) WIFACE=${OPTARG};;
+	r ) TTL=${OPTARG};;
         h ) echo ${usage}
             exit 1;;
-        * ) echo ${usage}
+        * ) echo this is the option: ${option}
+	    echo ${usage}
             exit 1;;
     esac
 done

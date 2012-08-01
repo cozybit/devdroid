@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# NOTE: not super well tested
-
 # Source common functions and parse options
 source `dirname ${0}`/common.sh
 

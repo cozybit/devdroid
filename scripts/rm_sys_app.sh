@@ -22,7 +22,7 @@ function remove_apps () {
 }
 
 # parse the incoming parameters
-usage="$0 [-s <device1>,<device2>,..] [-a <apk1>,<apk2>,..] [-h]"
+usage="$0 [-s <device1>,<device2>,.. or all] [-a <apk1>,<apk2>,..] [-h]"
 while getopts "s:a:h" options; do
     case $options in
         s ) DEVICES=${OPTARG};;

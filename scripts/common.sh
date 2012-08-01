@@ -34,6 +34,7 @@ function adbs () {
 	fi
 	# if is not USB adb, then replace ID with IP:PORT
 	is_adb_mode ${_ID} || _ID=`id2ip ${_ID}`:${ADB_TCP_PORT}
+	echo "[${_DEV_NAME}] adb ${*}"
 	adb -s ${_ID} ${*}
 }
 
@@ -69,6 +70,23 @@ function _poll () {
         fi
         Q echo "${_CMD} ${_MSG} in ${_EXE_TIME}s"
         [ "${_TIMED_OUT}" != "y" ]
+}
+
+# extract the value from a key=value pair.
+# usage: extract_value <key> <file_name>
+function extract_value () {
+	_KEY=${1}
+	_FILE=${2}
+	_AUX=`grep ${_KEY} ${_FILE}`
+	for var in ${_AUX}; do
+		if [[ "${var}" == *${_KEY}* ]]; then
+			_VALUE=`echo ${var} | cut -d"=" -f2`
+			_VALUE=${_VALUE//\"/}
+			echo -n ${_VALUE}
+		fi
+	done
+	echo -n ""
+	return 1
 }
 
 # check if the device ${1} is in adb mode
@@ -186,52 +204,25 @@ function ip2id () {
 
 # converts a given MAC address to a known IP with format 10.X.X.X
 # usage: mac2ip <mac_address>
-#function mac2ip () {
-#        _MAC=`echo ${1} | tr '[:lower:]' '[:upper:]'`
-#	[ -z ${_MAC} ] && return 1
-#        _HEX=(${_MAC//:/" "})
-#        _IP="10"
-#        for i in 3 4 5; do
-#                _DEC=`echo "ibase=16; ${_HEX[$i]}" | bc`
-#                _IP=${_IP}.${_DEC}
-#        done
-#        echo -n ${_IP}
-#}
+function mac2ip () {
+        _MAC=`echo ${1} | tr '[:lower:]' '[:upper:]'`
+	[ -z ${_MAC} ] && return 1
+        _HEX=(${_MAC//:/" "})
+        _IP="10"
+        for i in 3 4 5; do
+                _DEC=`echo "ibase=16; ${_HEX[$i]}" | bc`
+                _IP=${_IP}.${_DEC}
+        done
+        echo -n ${_IP}
+}
 
 # converts a given IP address to a MAC
 # usage: ip2mac <ip_address>
-#function ip2mac () {
-#        _IP=${1}
-#	_MAC=`adb -s ${_IP}:${ADB_TCP_PORT} shell netcfg | grep mesh0 | awk '{ printf $5 }' | tr -d '\r'`
-#	echo -n ${_MAC}
-#}
-
-# translates mac to device name.
-# It gets the info from the config file device_ids.lst
-# usage: mac2name <mac_address>
-#function mac2name () {
-#        _MAC=${1}
-#        [ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-#        _DEV_NAME=`cat ${DEVICE_LIST} | grep ${_MAC} 2>/dev/null | cut -d";" -f1`
-#        echo -n ${_DEV_NAME}
-#}
-
-# converts a given IP address to a MAC
-# usage: ip2mac <ip_address>
-#function ip2name () {
-        #_IP=${1}
-	#_MAC=`ip2mac ${_IP}`
-	#_NAME=`mac2name ${_MAC}`
-        #echo -n ${_NAME}
-#}
-
-# returns the IP address of the mesh iface.
-# It gets the info from the config file device_ids.lst
-# usagE: name2ip <device_name>
-#function name2ip () {
-	#_DEV_MAC=`name2mac ${*}`
-	#mac2ip ${_DEV_MAC}
-#}
+function ip2mac () {
+        _IP=${1}
+	_MAC=`adb -s ${_IP}:${ADB_TCP_PORT} shell netcfg | grep mesh0 | awk '{ printf $5 }' | tr -d '\r'`
+	echo -n ${_MAC}
+}
 
 # return (echo) the mac for given interface
 # use: if2mac <iface>

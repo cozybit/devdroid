@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# GOAL: build, install and launch an android application 
+#
+# This script requires adbs working
+#
+# author: Guillermo A. Nunez <guillermo@cozybit.com>
+
+# source common functions and parse options
+source `dirname ${0}`/common.sh
+
+BUILD_TYPE="debug"
+
+# parse the incoming parameters
+usage="$0 [ -s <device1>,<device2>.. ] [ -a ] [ -r ]  [ -h ]"
+while getopts "s:ar" options; do
+    case $options in
+	a ) DEVICES="all";;
+        s ) DEVICES=${OPTARG};;
+	r ) BUILD_TYPE="release";;
+        h ) echo ${usage}
+	    echo "-s       list of devices (CB01,CB02). If "all" provided is like -a."
+            echo "-a       all connected devices"
+            echo "-r       build project in release mode"
+            echo "-h       print help"
+            exit 1;;
+        * ) echo ${usage}
+            exit 1;;
+    esac
+done
+
+[ -z "${DEVICES}"  ] && die "ERROR: specify target devices.  Aborting."
+
+if [ "${DEVICES}" == "all" ]; then
+        DEVICES=`get_all_connected`
+        [ -z "${DEVICES}" ] && die "ERROR: no devices connected. Aborting."
+else
+        DEVICES=${DEVICES//,/" "}
+fi
+
+# build the project
+ant-dev ${BUILD_TYPE} || exit 1
+
+# get the package name from the manifest
+PKG_NAME=`extract_value package AndroidManifest.xml`
+
+# iterate through all the devices
+for dev in ${DEVICES}; do
+        id=`name2id ${dev}`
+        #verify the device name first
+        if [ -z "${id}" ]; then
+                echo "ERROR: device ${dev} does not exist in device.lst. Skipping device."
+        else
+		app=`ls bin/*-${BUILD_TYPE}.apk`
+		echo "[${dev}] Installing ${app} (${BUILD_TYPE} version)..."
+                OUT=`adbs ${id} install -r ${app}`
+		# check if it failed because of inconsistent certificates.
+		if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
+			echo "[${dev}] UNINSTALLINg app....."
+			OUT=`adbs ${id} uninstall ${PKG_NAME}`
+			[[ "${OUT}" == *Failure* ]] && { echo "[${dev}] ERROR: can't install ${app} (${BUILD_TYPE}). Is it a system app? Skipping device."; continue; }
+			adbs ${id} install ${app}
+		fi
+		#TODO launch the application if possible
+		# adbs ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
+                # PROBLE: how to get the androidName of the activity with the MAIN intent filter from the AndroidManifest.xml.
+        fi
+done

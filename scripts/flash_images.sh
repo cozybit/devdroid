@@ -30,7 +30,7 @@ function flash_images () {
 }
 
 # parse the incoming parameters
-usage="$0 [-s <device1>,<device2>,...] [ -p <alternative_images_path> ] [-h]"
+usage="$0 [-s <device1>,<device2>,... or all] [ -p <alternative_images_path> ] [-h]"
 while getopts "s:p:h" options; do
     case $options in
         s ) DEVICES=${OPTARG};;

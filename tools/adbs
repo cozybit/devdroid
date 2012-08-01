@@ -15,17 +15,21 @@
 source `dirname ${0}`/common.sh
 
 # parse the incoming parameters
-usage="$0 [-s <device1>,<device2>,.. or all ] <adb_commands and options>"
+usage="$0 [-s <device1>,<device2>,.. or all ] [ -a (for all devices) ] <adb_commands and options>"
 
-if [ "${1}" != "-s" ]; then
+if [ "${1}" != "-s" -a "${1}" != "-a" ]; then
 	echo "ERROR: Please, specify target devices. Aborting."
 	echo ${usage}
 	exit 1;
+
+elif [ "${1}" == "-a" ]; then
+	DEVICES="all"
 else
-	shift 1;
+	shift 1
 	DEVICES=${1}
-	shift 1;
 fi
+
+shift 1
 
 [ -z "${DEVICES}"  ] && die "ERROR: specify target devices.  Aborting."
 

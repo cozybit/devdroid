@@ -47,6 +47,10 @@ sed -i -e "s/${VER_ATTR}=\"${VERSION_NAME}\"/${VER_ATTR}=\"${VERSION_NAME}-dev-$
 
 # build the app 
 ant-b $*
+RETURN=$?
 
 # restore the original file (even if the build fails)
 mv /tmp/$(basename ${FILE}) ${FILE}
+
+# exit the script with the return value of the ant command
+exit ${RETURN}
