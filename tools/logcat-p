@@ -24,13 +24,10 @@ if [ -z "${ID}" ]; then
 	ADB_PARAMS=""
 	DEVICES=`adb devices | grep -v "List of" | grep -v '^$' -c`
 	[ ${DEVICES} -gt 1 ] && { echo "ERROR: You have more than one device connected. Please, use the -s parameter. Aborting."; echo ${usage}; exit -1; }
-elif ! is_adb_mode ${ID}; then
-	echo "ERROR: The device ${ID} is not connected to adb (or is a wrong ID). Aborting."
-	exit -1
 fi
 
-APP_PID=`adb ${ADB_PARAMS} ${ID} shell ps | grep ${PKG_NAME} | awk '{print $2}'`
+APP_PID=`adbs ${ID} shell ps | grep ${PKG_NAME} | awk '{print $2}'`
 
 [ -z "${APP_PID}" ] && { echo "The package ${PKG_NAME} is not ins the list of running process. Launch the application first (or make sure it's the right package name). Aborting."; exit -1; }
 
-adb ${ADB_PARAMS} ${ID} logcat | grep ${APP_PID}
+adbs ${ID} logcat | grep ${APP_PID}

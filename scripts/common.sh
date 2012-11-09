@@ -195,12 +195,12 @@ function ip2id () {
 # returns the MAC address of the mesh iface.
 # It gets the info from the config file device_ids.lst
 # usage: name2mac <device_name>
-#function name2mac () {
-#	_DEV_NAME=${1}
-#	[ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-#	_DEV_MAC=`cat ${DEVICE_LIST} | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f3`
-#	echo -n ${_DEV_MAC}
-#}
+function name2mac () {
+	_DEV_NAME=${1}
+	[ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
+	_DEV_MAC=`cat ${DEVICE_LIST} | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f4`
+	echo -n ${_DEV_MAC}
+}
 
 # converts a given MAC address to a known IP with format 10.X.X.X
 # usage: mac2ip <mac_address>

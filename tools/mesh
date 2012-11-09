@@ -28,10 +28,7 @@ function check_parameters () {
 
 [ -z "${MESH_ID}" -o -z "${WIFACE}" -o -z "${CHANNEL}" ] && die "ERROR: make sure that you've configured all the mesh parameters in the main config file. Aborting."
 
-[ -z "${PARAM}" ] && 
-	die "ERROR: you need to provide an action (-a <up/down>). Aborting."
-[ "${PARAM}" != "up" -a "${PARAM}" != "down" ] && 
-	die "ERROR: you need to provide an valid action (-a <up/down>). Aborting."
+[ -z "${ACTION}" ] && die "ERROR: you need to provide an action (-a <up/down>). Aborting."
 
 ip link show ${WIFACE} &>/dev/null || die "ERROR: the ${WIFACE} interface does not exist. Aborting."
 
@@ -60,6 +57,21 @@ function teardown () {
 	fi
 }
 
+#block node1 from node2 and viceversa
+# usage: block node1 node2
+function block {
+	if [ "${1}" = "" ]; then echo "block: missing nodes"; exit 1; fi
+	if [ "${2}" = "" ]; then echo "block: missing one node"; exit 1; fi
+	
+	_ID[0]=`name2id ${1}`
+	_ID[1]=`name2id ${2}`
+
+	_MAC=`name2mac ${2}`
+	adbs ${_ID[0]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
+	_MAC=`name2mac ${1}`
+	adbs ${_ID[1]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
+}
+
 #name of the mesh iface
 MESH_IFACE=mesh0
 NETMASK=8
@@ -68,12 +80,13 @@ MCAST_IP=225.0.0.0
 FLUSH=0
 
 # parse the incoming parameters
-usage="$0 [-a <up/down> ] [ -i <meshid> ] [ -c <channel> ] [ -f (flush) ] [ -t <ht_mode> ] [ -w <w_interface> ] [ -r <retrasnmissions/TTL> ]  [-h]"
-while getopts "a:i:c:ft:w:hr:" options; do
+usage="$0 [-a <up/down/block> ] [ -i <meshid> ] [ -c <channel> ] [ -d <devices_to_block> ] [ -f (flush) ] [ -t <ht_mode> ] [ -w <w_interface> ] [ -r <retrasnmissions/TTL> ]  [-h]"
+while getopts "a:i:c:d:ft:w:hr:" options; do
     case $options in
-	a ) PARAM=${OPTARG};;
+	a ) ACTION=${OPTARG};;
 	i ) MESH_ID=${OPTARG};;
         c ) CHANNEL=${OPTARG};;
+	d ) DEVICES=${OPTARG};;
 	f ) FLUSH=1;;
         t ) HT_MODE=${OPTARG};;
 	w ) WIFACE=${OPTARG};;
@@ -89,10 +102,30 @@ done
 #first evaluate given parameters
 check_parameters
 
-if [ ${PARAM} == "up" ]; then
+if [ ${ACTION} == "up" ]; then
 	[ ${FLUSH} -eq 1 ] && teardown
 	ip link show ${MESH_IFACE} &> /dev/null && die "ERROR: ${MESH_IFACE} interface already exists. Aborting."
 	tearup
-else
+elif [ ${ACTION} == "down" ]; then
 	teardown
+elif [ ${ACTION} == "block" ]; then
+	ip link show ${MESH_IFACE} &> /dev/null || die "ERROR: ${MESH_IFACE} interface is not up. Aborting."
+	[ -z "${DEVICES}" ] && die "ERROR: you need to provide the devices to block (-d <dev1,dev2>). Aborting."
+	DEVICES=${DEVICES//,/" "}
+	# iterate through all the devices provided
+	for dev in ${DEVICES}; do
+		_MAC=`name2mac ${dev}`
+        	#if _MAC is empty, then dev must be the mac
+	        [ -z "${_MAC}" ] && _MAC=${dev}
+		sudo iw dev ${MESH_IFACE} station set ${_MAC} plink_action block #&>/dev/null
+	done
+#This routine should go in a script that manages the android devices. For now we'll call it remote block
+elif [ ${ACTION} == "rblock" ]; then
+	ip link show ${MESH_IFACE} &> /dev/null || die "ERROR: ${MESH_IFACE} interface is not up. Aborting."
+	[ -z "${DEVICES}" ] && die "ERROR: you need to provide the devices to block (-d <dev1,dev2>). Aborting."
+	IFS=',' read -a NODES <<< "${DEVICES}"
+	echo "about to block ${NODES[0]} and ${NODES[1]}"
+	block ${NODES[0]} ${NODES[1]}
+else
+	die "ERROR: unsupported action. Aborting."
 fi

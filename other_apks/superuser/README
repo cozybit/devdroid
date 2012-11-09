@@ -1,0 +1,38 @@
+# HOW TO ROOT A TERMINAL
+
+Run the root_device script availbale in this folder.
+For more info check the script.
+
+# SOFTWARE VERSION INFO
+- Superuser.apk version: v3.1.3 (46) (2012-07-01)
+- su binary:  v3.1.1 (17)
+
+This version it's been obtained from some website (XDA forums). I has not been
+built from sources.
+
+# HOW TO VERYFY THE DEVICE IS CORRECTLY ROOTED
+
+- Launch superuser app
+- Go to the info section
+- check that the info under "su binary vXXXX" is in green (it is the output of
+  the command "ls -la"):
+    ie: -rwsr-sr-x   root root   /system/xbin/su
+
+Now, the rooted device should be able to execute commands as root from the app layer.
+
+# MORE INFO ABOUT HOW TO ROOT A PHONE
+
+- Official website: http://androidsu.com/
+- http://android.stackexchange.com/questions/18601/what-exactly-is-superuser-apk-and-su
+- http://code.google.com/p/techfan/wiki/Android_Root
+
+# SOURCE CODE
+
+- Superuser apk: https://github.com/ChainsDD/Superuser 
+- Su binary: https://github.com/ChainsDD/su-binary
+
+# THINGS TO STUDY
+
+- Root permissions in the AndroidManifest?
+
+  http://stackoverflow.com/questions/11283002/execsu-permission-denied
