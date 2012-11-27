@@ -23,17 +23,17 @@ function die () {
     exit -1
 }
 
-# adb-super check the device before executing the adb command
+# adb-super check the status device before executing the adb command
 # usage: adbs <device_id> <adb params>
 function adbs () {
 	_ID=${1}; shift 1;
 	_DEV_NAME=`id2name ${_ID}`
-	if ! is_adb_mode ${_ID} && ! is_tcpip_mode ${_ID} ; then
+	if ! is_adb_mode ${_ID} && ! _IP=`is_tcpip_mode ${_ID}` ; then
 		echo "[${_DEV_NAME}/${_ID}] WARNING: device not connected to adb (via USB or TCP). Skipping device." >/dev/stderr
 		return 1
 	fi
 	# if is not USB adb, then replace ID with IP:PORT
-	is_adb_mode ${_ID} || _ID=`id2ip ${_ID}`:${ADB_TCP_PORT}
+	is_adb_mode ${_ID} || _ID=${_IP}:${ADB_TCP_PORT}
 	echo "[${_DEV_NAME}] adb ${*}"
 	adb -s ${_ID} ${*}
 }
@@ -110,12 +110,17 @@ function is_fastboot_mode () {
 # usage: is_tcpip_mode <device_id>
 function is_tcpip_mode () {
 	_ID=${1}
-	_IP=`id2ip ${_ID}`
-	[ -z "${_IP}" ] && return 1
-	sudo ping -f -c 3 -w 3 ${_IP} &> /dev/null || { adb disconnect ${_IP} &>/dev/null; return 1; }
-	adb connect ${_IP}:${ADB_TCP_PORT} &>/dev/null
-	adb devices | grep ${_IP} | grep device &>/dev/null && return 0
-	adb disconnect ${_IP} &>/dev/null
+	_IPS=`id2ips ${_ID}`
+	[ -z "${_IPS}" ] && return 1
+	IFS=","
+	for ip in ${_IPS}; do
+		sudo ping -f -c 3 -w 3 ${ip} &>/dev/null
+		if [ $? -eq 0 ]; then
+			adb connect ${ip}:${ADB_TCP_PORT} &>/dev/null
+			adb devices | grep ${ip} | grep device &>/dev/null && echo -n ${ip} && return 0
+		fi
+		adb disconnect ${ip} &>/dev/null
+	done
 	return 1
 }
 
@@ -148,14 +153,20 @@ function get_all_connected () {
 	echo -n ${_DEV_NAMES}
 }
 
+# cats the device.lst config file avoiding the commented lines
+# usage: cat_conf
+function cat_conf () {
+	[ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
+	cat ${DEVICE_LIST} | grep -v "#"
+}
+
 # returns the device serial ID.
 # It gets the info from the config file device_ids.lst
 # usage: name2id <device_name>
 function name2id () {
 	_DEV_NAME=${1}
-	[ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-	_DEV_ID=`cat ${DEVICE_LIST} | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f2`
-	[ -z "${_DEV_ID}" ] && { echo "WARNING: device ${_DEV_NAME} has no ID assigned in devices.lst.">/dev/stderr ; return 1; }
+	_DEV_ID=`cat_conf | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f2`
+	[ -z "${_DEV_ID}" ] && { echo "WARNING: Device ${_DEV_NAME} has no ID assigned in devices.lst.">/dev/stderr ; return 1; }
 	echo -n ${_DEV_ID}
 }
 
@@ -164,20 +175,18 @@ function name2id () {
 # usage: name2id <device_name>
 function id2name () {
 	_DEV_ID=${1}
-	[ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-	_DEV_NAME=`cat ${DEVICE_LIST} | grep ${_DEV_ID} 2>/dev/null | cut -d";" -f1`
-	[ -z "${_DEV_NAME}" ] && { echo "WARNING: device ${_DEV_ID} has no name assigned in devices.lst.">/dev/stderr ; return 1; }
+	_DEV_NAME=`cat_conf | grep ${_DEV_ID} 2>/dev/null | cut -d";" -f1`
+	[ -z "${_DEV_NAME}" ] && { echo "WARNING: Device ${_DEV_ID} has no name assigned in devices.lst.">/dev/stderr ; return 1; }
 	echo -n ${_DEV_NAME}
 }
 
 # returns the IP address of the device_id.
 # It gets the info from the config file device_ids.lst
-# usage: id2ip <device_ID>
-function id2ip () {
+# usage: id2ips <device_ID>
+function id2ips () {
         _DEV_ID=${1}
-        [ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-        _DEV_IP=`cat ${DEVICE_LIST} | grep ${_DEV_ID} 2>/dev/null | cut -d";" -f3`
-	[ -z "${_DEV_IP}" ] && { echo "WARNING: device ${_DEV_ID} has no IP assigned in devices.lst.">/dev/stderr ; return 1; }
+        _DEV_IP=`cat_conf | grep ${_DEV_ID} 2>/dev/null | cut -d";" -f3`
+	[ -z "${_DEV_IP}" ] && { echo "WARNING: Device ${_DEV_ID} has no IP assigned in devices.lst.">/dev/stderr ; return 1; }
         echo -n ${_DEV_IP}
 }
 
@@ -186,10 +195,19 @@ function id2ip () {
 # usage: ip2id <device_IP>
 function ip2id () {
         _DEV_IP=${1}
-        [ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-        _DEV_ID=`cat ${DEVICE_LIST} | grep ${_DEV_IP} 2>/dev/null | cut -d";" -f2`
+        _DEV_ID=`cat_conf | grep ${_DEV_IP} 2>/dev/null | cut -d";" -f2`
 	[ -z "${_DEV_ID}" ] && { echo "WARNING: IP ${_DEV_IP} is not present in devices.lst.">/dev/stderr; return 1; }
         echo -n ${_DEV_ID}
+}
+
+# returns the ID that corresponds to the given IP.
+# It gets the info from the config file device_ids.lst
+# usage: ip2name <device_IP>
+function ip2name () {
+        _DEV_IP=${1}
+        _DEV_NAME=`cat_conf | grep ${_DEV_IP} 2>/dev/null | cut -d";" -f1`
+	[ -z "${_DEV_NAME}" ] && { echo "WARNING: IP ${_DEV_IP} is not present in devices.lst.">/dev/stderr; return 1; }
+        echo -n ${_DEV_NAME}
 }
 
 # returns the MAC address of the mesh iface.
@@ -197,8 +215,8 @@ function ip2id () {
 # usage: name2mac <device_name>
 function name2mac () {
 	_DEV_NAME=${1}
-	[ -n ${DEVICE_LIST} -a -f ${DEVICE_LIST} ] || die "ERROR: The list of devices is not especified or does not exist. Aborting."
-	_DEV_MAC=`cat ${DEVICE_LIST} | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f4`
+	_DEV_MAC=`cat_conf | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f4`
+	[ -z "${_DEV_MAC}" ] && { echo "WARNING: Device ${_DEV_IP} has no MAC for its mesh iface in devices.lst.">/dev/stderr; return 1; }
 	echo -n ${_DEV_MAC}
 }
 

@@ -44,7 +44,7 @@ function tearup () {
 		die "ERROR: problem when configuring the ${MESH_IFACE} interface. Aborting." 
 	sudo ip link set dev ${MESH_IFACE} up || die "ERROR: problem when bringing the ${MESH_IFACE} interface up. Aborting."
 	[ -n  "${TTL}" ] && sudo iw dev ${MESH_IFACE} set mesh_param mesh_ttl ${TTL}
-	sudo iw ${MESH_IFACE} mesh join ${MESH_ID} mcast-rate 54 vendor_sync on || die "ERROR: problem joining the mesh ${MESH_ID}. Aborting."
+	sudo iw ${MESH_IFACE} mesh join ${MESH_ID} vendor_sync on || die "ERROR: problem joining the mesh ${MESH_ID}. Aborting."
 }
 
 function teardown () {
