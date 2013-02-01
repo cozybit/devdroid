@@ -1,0 +1,45 @@
+#!/usr/bin/python
+
+# GOAL: upload a file to a google drive account
+
+from optparse import OptionParser
+import sys
+import os
+import gdata.docs.data
+import gdata.docs.client
+
+parser = OptionParser()
+parser.add_option("-c", "--credentials", dest="credentials",
+                  help="credentials to authenticate", metavar="USER:PASS")
+parser.add_option("-f", "--filePath", dest="filePath",
+                  help="path to the file to upload", metavar="/path/to/file")
+
+(options, args) = parser.parse_args()
+
+if options.credentials is not None:
+    credentials = options.credentials
+else:
+    credentials = os.environ.get('GDRIVE_USER')
+    
+if credentials is None:
+    print "ERROR: please, provide Google Drive credentials via -c parameter or seting the environment variable $GDRIVE_USER"
+    print "Usage: ./gd_upload.py -c user:pass -f /path/to/file"
+    sys.exit(1)
+
+if options.filePath is None:
+    print "ERROR: please, provide the path to the file. Aborting."
+    print "Usage: ./gd_upload.py -c user:pass -f /path/to/file"
+    sys.exit(1)
+else:
+    _credentials = credentials.split(':')
+    client = gdata.docs.client.DocsClient(source='your-app')
+    client.api_version = "3"
+    client.ssl = True
+    client.ClientLogin(_credentials[0], _credentials[1], client.source)
+    _fileName = options.filePath.split('/')
+    newResource = gdata.docs.data.Resource(options.filePath, _fileName[-1])
+    media = gdata.data.MediaSource()
+    media.SetFileHandle(options.filePath, 'mime/type')
+    print "Uploading " + options.filePath + " to " + _credentials[0] + "'s Google Drive account..."
+    newDocument = client.CreateResource(newResource, create_uri=gdata.docs.client.RESOURCE_UPLOAD_URI, media=media)
+    print "File uploaded! Please, verify the upload in your google drive account. "
