@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# print message and exit the script
+# usage: die <message>
+function die () {
+    echo ${*}
+    exit -1
+}
+
+# parse the incoming parameters
+usage="$0 [ -a root/unroot ] [ -s <device1>,<device2>,.. or all ] [ -h ]"
+while getopts "a:s:h" options; do
+    case $options in
+        a ) ACTION=${OPTARG};;
+        s ) DEVICES=${OPTARG};;
+        h ) echo ${usage}
+            echo "-a       action to execure: root/unroot"
+            echo "-s       list of devices (CB01,CB02)."
+            echo "-h       print help"
+            exit 1;;
+        * ) echo ${usage}
+            exit 1;;
+    esac
+done
+
+[ -z "${ACTION}" ] && die "ERROR: missing action. Please, provide a valid action: root/unroot."
+[ -z "${DEVICES}" ] && die "ERROR: missing target devices. Please provide a device or range of devices: -s CB30,CB31."
+
+echo "Rooting devices: ${DEVICES}"
+
+if [ "${ACTION}" == "root" ]; then
+	adbs -s ${DEVICES} root
+	adbs -s ${DEVICES} remount
+	adbs -s ${DEVICES} push Superuser.apk /system/app/
+	adbs -s ${DEVICES} shell mv /system/xbin/su /system/xbin/su.back
+	adbs -s ${DEVICES} push su /system/xbin/su
+	adbs -s ${DEVICES} shell chown root.root /system/xbin/su
+	adbs -s ${DEVICES} shell chmod 6755 /system/xbin/su
+	adbs -s ${DEVICES} reboot
+	echo "Devices ${DEVICES} ROOTED succesfully"
+elif [ "${ACTION}" == "unroot" ]; then
+	adbs -s ${DEVICES} root
+	adbs -s ${DEVICES} remount
+	adbs -s ${DEVICES} shell rm /system/app/Superuser.apk
+	adbs -s ${DEVICES} shell mv /system/xbin/su.back /system/xbin/su
+	adbs -s ${DEVICES} reboot
+	echo "Devices ${DEVICES} UNROOTED succesfully"
+
+else
+	die "ERROR: unsupported action. Please, provide a valid action: root/unroot."
+fi

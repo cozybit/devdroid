@@ -36,3 +36,10 @@ Now, the rooted device should be able to execute commands as root from the app l
 - Root permissions in the AndroidManifest?
 
   http://stackoverflow.com/questions/11283002/execsu-permission-denied
+
+# HOW TO ROOT/UNROOT DEVICES
+
+  Use the script available in this directory;
+
+  - ROOT: ./root_device -s CBXX,CBYY -a root
+  - UNROOT: ./root_device -s CBXX,CBYY -a unroot

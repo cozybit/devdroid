@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">adb conf</string>
+    <string name="usb_mode">USB</string>
+    <string name="tcpip_mode">TCPIP</string>
+
+</resources>

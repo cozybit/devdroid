@@ -1,0 +1,24 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity" >
+
+    <Button
+        android:id="@+id/usb_button"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="@string/usb_mode"
+        android:onClick="onAdbUSBButton"
+        android:layout_weight="1"/>
+    
+    <Button
+        android:id="@+id/tcpip_button"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="@string/tcpip_mode"
+        android:onClick="onAdbTCPButton"
+        android:layout_weight="1"/>
+    
+</LinearLayout>
