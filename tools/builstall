@@ -9,20 +9,41 @@
 # source common functions and parse options
 source `dirname ${0}`/common.sh
 
+# extract android:name value of tha activity with the action.MAIN intent filter
+function extractMainActivityName () {
+	i=1
+	grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep activity &> /dev/null
+	while  [ $? -ne 0 -a ${i} -lt 100  ] ; do
+		i=$((i+1))
+		grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep -e "<activity" &>/dev/null
+	done
+
+	[ ${i} -eq 100 ] && { echo ""; return 1; }
+
+	TST=`grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep -v android.intent.action.MAIN | grep android:name`
+
+	#TODO: extract the value android:name properly!! Dont' commit & push this until this is FIXED!!!
+	TST=`echo ${TST} | cut -d"=" -f2`
+	echo ${TST//\"/}
+	return 0
+}
+
 BUILD_TYPE="debug"
 
 # parse the incoming parameters
-usage="$0 [ -s <device1>,<device2>.. ] [ -a ] [ -r ]  [ -h ]"
-while getopts "s:ar" options; do
+usage="$0 [ -s <device1>,<device2>.. ] [ -a ] [ -i ] [ -r ] [ -t ] [ -h ]"
+while getopts "hirs:t:" options; do
     case $options in
-	a ) DEVICES="all";;
+	i ) INSTALL="yes";;
+        r ) LAUNCH="yes";;
         s ) DEVICES=${OPTARG};;
-	r ) BUILD_TYPE="release";;
+	t ) BUILD_TYPE=${OPTARG};;
         h ) echo ${usage}
-	    echo "-s       list of devices (CB01,CB02). If "all" provided is like -a."
-            echo "-a       all connected devices"
-            echo "-r       build project in release mode"
-            echo "-h       print help"
+	    echo "-i       skip building step, just install."
+	    echo "-s       list of target devices (CB01,CB02). For all connected use \"all\"."
+            echo "-r       run the app just after installing it."
+            echo "-t       type of build: debug/release."
+            echo "-h       print this message."
             exit 1;;
         * ) echo ${usage}
             exit 1;;
@@ -38,11 +59,17 @@ else
         DEVICES=${DEVICES//,/" "}
 fi
 
+[ "${BUILD_TYPE}" != "debug" -a "${BUILD_TYPE}" != "release" ] && die "ERROR: specify a valid build type: debug/release. Aborting."
+
 # build the project
-ant-dev ${BUILD_TYPE} || exit 1
+if [ -z "${INSTALL}" ]; then
+	ant-dev ${BUILD_TYPE} || exit 1
+else
+	echo "Skip building the project..."
+fi
 
 # get the package name from the manifest
-PKG_NAME=`extract_value package AndroidManifest.xml`
+PKG_NAME=`extractAttributeXML AndroidManifest.xml /manifest package`
 
 # iterate through all the devices
 for dev in ${DEVICES}; do
@@ -56,13 +83,14 @@ for dev in ${DEVICES}; do
                 OUT=`adbs ${id} install -r ${app}`
 		# check if it failed because of inconsistent certificates.
 		if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
-			echo "[${dev}] UNINSTALLINg app....."
+			echo "[${dev}] UNINSTALLING app....."
 			OUT=`adbs ${id} uninstall ${PKG_NAME}`
 			[[ "${OUT}" == *Failure* ]] && { echo "[${dev}] ERROR: can't install ${app} (${BUILD_TYPE}). Is it a system app? Skipping device."; continue; }
 			adbs ${id} install ${app}
 		fi
-		#TODO launch the application if possible
-		# adbs ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
-                # PROBLE: how to get the androidName of the activity with the MAIN intent filter from the AndroidManifest.xml.
+		if [ "${LAUNCH}" == "yes" ]; then
+			MAIN_ACTIVITY=`extractMainActivityName`
+			[ $? -eq 0 ] && adbs ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
+		fi
         fi
 done

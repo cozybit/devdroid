@@ -72,6 +72,16 @@ function _poll () {
         [ "${_TIMED_OUT}" != "y" ]
 }
 
+# extract the vale of a specific tag attribue in a xml file
+# usage: extractAttributeXML <file.xml> </root/child1/child2> <attribute name>
+function extractAttributeXML () {
+        _FILE=${1}
+        _PATH=${2}
+        _ATTR=${3}
+        _RESULTS=`echo 'cat '${_PATH}'/@*[name()="'${_ATTR}'"]' | xmllint --shell ${_FILE} | grep ${_ATTR}= | cut -d"=" -f2 `
+        echo ${_RESULTS//\"/}
+}
+
 # extract the value from a key=value pair.
 # usage: extract_value <key> <file_name>
 function extract_value () {
@@ -92,7 +102,6 @@ function extract_value () {
 # check if the device ${1} is in adb mode
 # usage: is_adb_mode <device_id>
 function is_adb_mode () {
-	echo _is_adb_mode_ > /dev/null
 	_ID=${1}
 	adb devices | grep ${_ID} | grep device &>/dev/null && return 0
 	return 1
@@ -114,9 +123,10 @@ function is_tcpip_mode () {
 	[ -z "${_IPS}" ] && return 1
 	IFS=","
 	for ip in ${_IPS}; do
-		sudo ping -f -c 3 -w 3 ${ip} &>/dev/null
+		sudo ping -f -c 4 -w 3 ${ip} &>/dev/null
 		if [ $? -eq 0 ]; then
 			adb connect ${ip}:${ADB_TCP_PORT} &>/dev/null
+			sleep 1
 			adb devices | grep ${ip} | grep device &>/dev/null && echo -n ${ip} && return 0
 		fi
 		adb disconnect ${ip} &>/dev/null
@@ -259,16 +269,16 @@ function git.branch {
 [ "${DEBUG}" == "1" ] && set -x
 
 # check if the main environment variable is set. It defines the top directory. Otherwise, abort
-[ -z ${MESHDROID} ] && die "ERROR: The environment variable MESHDROID is not set. Aborting."
+[ -z ${DEVDROID} ] && die "ERROR: The environment variable DEVDROID is not set. Aborting."
 
 # allow user to override configuration file in environment
-[ -z ${MESHDROID_CONF} ] && MESHDROID_CONF=${MESHDROID}/config/meshdroid.conf
+[ -z ${DEVDROID_CONF} ] && DEVDROID_CONF=${DEVDROID}/config/devdroid.conf
 
 # source the config variables
-if [ -e ${MESHDROID_CONF} ]; then
-        source ${MESHDROID_CONF}
+if [ -e ${DEVDROID_CONF} ]; then
+        source ${DEVDROID_CONF}
 else
-	die "ERROR: config file ${MESHDROID_CONF} does not exist"
+	die "ERROR: config file ${DEVDROID_CONF} does not exist"
 fi
 
 # validate minimal configuration

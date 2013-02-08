@@ -3,31 +3,30 @@
 # Source common functions and parse options
 source `dirname ${0}`/common.sh
 
-ADB_PARAMS="-s "
-
 # parse the incoming parameters
-usage="$0 [ -s <device_id> ] [ -p <package_name> ] [ -h ]"
+usage="$0 [ -s <device_name> ] [ -p <package_name> ] [ -h ]"
 while getopts "s:p:h" options; do
     case $options in
-        s ) ID=${OPTARG};;
+        s ) DEV_NAME=${OPTARG};;
         p ) PKG_NAME=${OPTARG};;
         h ) echo ${usage}
             exit 1;;
-        * ) echo ${usage}
+        * ) echo "Invalid option!"
+	    echo ${usage}
             exit 1;;
     esac
 done
 
-[ -z "${PKG_NAME}" ] && { echo "Please, provide a package name. Aborting."; echo ${usage}; exit -1; }
- 
-if [ -z "${ID}" ]; then
-	ADB_PARAMS=""
-	DEVICES=`adb devices | grep -v "List of" | grep -v '^$' -c`
-	[ ${DEVICES} -gt 1 ] && { echo "ERROR: You have more than one device connected. Please, use the -s parameter. Aborting."; echo ${usage}; exit -1; }
-fi
+[ -z "${PKG_NAME}" -a -f AndroidManifest.xml ] && PKG_NAME=`extractAttributeXML AndroidManifest.xml /manifest package`
+[ -z "${PKG_NAME}" ] && die "Please, provide a package name. ${usage}."
+[ -z "${DEV_NAME}" ] && die "Please, provide the name of device."
 
-APP_PID=`adbs ${ID} shell ps | grep ${PKG_NAME} | awk '{print $2}'`
+ID=`name2id ${DEV_NAME}`
 
-[ -z "${APP_PID}" ] && { echo "The package ${PKG_NAME} is not ins the list of running process. Launch the application first (or make sure it's the right package name). Aborting."; exit -1; }
+adbs ${ID} shell ps &> /dev/null
+[ $? -eq 1 ] && { echo ${TMP}; exit 1; }
+APP_PID=`adbs ${ID} shell ps | grep ${PKG_NAME} | grep -v "remote" | awk '{print $2}'`
 
-adbs ${ID} logcat | grep ${APP_PID}
+[ -z "${APP_PID}" ] && die "The package ${PKG_NAME} is not in the list of running process. Launch the application first (or make sure it's the right package name). Aborting."
+
+adbs ${ID} logcat | grep -e "${APP_PID}"
