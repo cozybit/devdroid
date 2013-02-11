@@ -4,12 +4,17 @@
 source `dirname ${0}`/common.sh
 
 # parse the incoming parameters
-usage="$0 [ -s <device_name> ] [ -p <package_name> ] [ -h ]"
-while getopts "s:p:h" options; do
+usage="$0 [ -s <device_name> ] [ -p <package_name> ] [ -c ] [ -h ]"
+while getopts "cs:p:h" options; do
     case $options in
+	c ) CLASSIC="yes";;
         s ) DEV_NAME=${OPTARG};;
         p ) PKG_NAME=${OPTARG};;
         h ) echo ${usage}
+	    echo "-s          target device/s (ie: -s CB01,CB02)"
+            echo "-p          name of the package (ie: -p com.abc.d)"
+            echo "            if AndroidManifest available, -p argument is not necessary"
+            echo "-c          classic mode (non colored)"
             exit 1;;
         * ) echo "Invalid option!"
 	    echo ${usage}
@@ -23,10 +28,8 @@ done
 
 ID=`name2id ${DEV_NAME}`
 
-adbs ${ID} shell ps &> /dev/null
-[ $? -eq 1 ] && { echo ${TMP}; exit 1; }
-APP_PID=`adbs ${ID} shell ps | grep ${PKG_NAME} | grep -v "remote" | awk '{print $2}'`
-
-[ -z "${APP_PID}" ] && die "The package ${PKG_NAME} is not in the list of running process. Launch the application first (or make sure it's the right package name). Aborting."
-
-adbs ${ID} logcat | grep -e "${APP_PID}"
+if [ -z "${CLASSIC}" ]; then
+	adbs ${ID} logcat | proclogcat ${PKG_NAME} | coloredlogcat.py
+else
+	adbs ${ID} logcat | proclogcat ${PKG_NAME}
+fi
