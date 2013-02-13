@@ -50,14 +50,10 @@ while getopts "hirs:t:" options; do
     esac
 done
 
-[ -z "${DEVICES}"  ] && die "ERROR: specify target devices.  Aborting."
-
-if [ "${DEVICES}" == "all" ]; then
-        DEVICES=`get_all_connected`
-        [ -z "${DEVICES}" ] && die "ERROR: no devices connected. Aborting."
-else
-        DEVICES=${DEVICES//,/" "}
-fi
+#TODO: validate_devices calls the die()function internally if the value of
+#DEVICES is not valid. The problem is that the script does not die. Maybe it's
+#because die only kills the subshell created by the `` 
+DEVICES=`validate_devices ${DEVICES}` || die "${DEVICES}"
 
 [ "${BUILD_TYPE}" != "debug" -a "${BUILD_TYPE}" != "release" ] && die "ERROR: specify a valid build type: debug/release. Aborting."
 
@@ -73,24 +69,19 @@ PKG_NAME=`extractAttributeXML AndroidManifest.xml /manifest package`
 
 # iterate through all the devices
 for dev in ${DEVICES}; do
-        id=`name2id ${dev}`
-        #verify the device name first
-        if [ -z "${id}" ]; then
-                echo "ERROR: device ${dev} does not exist in device.lst. Skipping device."
-        else
-		app=`ls bin/*-${BUILD_TYPE}.apk`
-		echo "[${dev}] Installing ${app} (${BUILD_TYPE} version)..."
-                OUT=`adbs ${id} install -r ${app}`
-		# check if it failed because of inconsistent certificates.
-		if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
-			echo "[${dev}] UNINSTALLING app....."
-			OUT=`adbs ${id} uninstall ${PKG_NAME}`
-			[[ "${OUT}" == *Failure* ]] && { echo "[${dev}] ERROR: can't install ${app} (${BUILD_TYPE}). Is it a system app? Skipping device."; continue; }
-			adbs ${id} install ${app}
-		fi
-		if [ "${LAUNCH}" == "yes" ]; then
-			MAIN_ACTIVITY=`extractMainActivityName`
-			[ $? -eq 0 ] && adbs ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
-		fi
-        fi
+	id=`name2id ${dev}`
+	app=`ls bin/*-${BUILD_TYPE}.apk`
+	echo "[${dev}] Installing ${app} (${BUILD_TYPE} version)..."
+	OUT=`adb_agnostic ${dev} install -r ${app}`
+	# check if it failed because of inconsistent certificates.
+	if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
+		echo "[${dev}] UNINSTALLING app....."
+		OUT=`adb_agnostic ${id} uninstall ${PKG_NAME}`
+		[[ "${OUT}" == *Failure* ]] && { echo "[${dev}] ERROR: can't install ${app} (${BUILD_TYPE}). Is it a system app? Skipping device."; continue; }
+		adb_agnostic ${id} install ${app}
+	fi
+	if [ "${LAUNCH}" == "yes" ]; then
+		MAIN_ACTIVITY=`extractMainActivityName`
+		[ $? -eq 0 ] && adb_agnostic ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
+	fi
 done

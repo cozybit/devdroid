@@ -19,13 +19,42 @@ function dlog () {
 # print message and exit the script
 # usage: die <message>
 function die () {
-    echo ${*}
-    exit -1
+	echo ${*}
+	exit -1
 }
 
-# adb-super check the status device before executing the adb command
-# usage: adbs <device_id> <adb params>
-function adbs () {
+# validate a list of given devices and returns a formatted list. The returned
+# list is just the list of devices separated by spaces. If not fails.
+# valid input formats: 
+#   CB01,CB02,CB03 | all | CB01:CB10
+# usage: validate_devices <devices>
+function validate_devices() {
+
+	_DEVS=${1}
+
+	[ -z "${_DEVS}" ] && die "ERROR: specify target devices.  Aborting."
+
+        if [ "${_DEVS}" == "all" ]; then
+                _DEVS=`get_all_connected`
+                [ -z "${_DEVS}" ] && die "ERROR: no devices connected. Aborting."
+        elif [[ "${_DEVS}" =~ ":"  ]]; then
+                _RANGE=${_DEVS//CB/}
+		_OLD_IFS="${IFS}"
+		IFS=":"
+		_RANGE=( ${_RANGE} )
+		IFS="${_OLD_IFS}"
+                [ "${_RANGE[0]}" -lt "${_RANGE[1]}" ] || die "ERROR: invalid range of devices. Right format: CB05:CB10"
+                _DEVS="CB`seq -s " CB" ${_RANGE[0]} ${_RANGE[1]}`"
+        else
+                _DEVS=${_DEVS//,/" "}
+        fi
+
+	echo ${_DEVS} && return 0
+}
+
+# adb_agnostic check the status device before executing the adb command
+# usage: adb_agnostic <device_id> <adb params>
+function adb_agnostic () {
 	_ID=${1}; shift 1;
 	_DEV_NAME=`id2name ${_ID}`
 	if ! is_adb_mode ${_ID} && ! _IP=`is_tcpip_mode ${_ID}` ; then
@@ -254,7 +283,7 @@ function ip2mac () {
 
 # return (echo) the mac for given interface
 # use: if2mac <iface>
-if2mac () {
+function if2mac () {
         _IF=${1}
         echo -n `ip link show ${_IF} | awk '/ether/ {print $2}'`
 }

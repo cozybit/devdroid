@@ -15,30 +15,18 @@
 source `dirname ${0}`/common.sh
 
 # parse the incoming parameters
-usage="$0 [-s <device1>,<device2>,.. or all ] [ -a (for all devices) ] <adb_commands and options>"
+usage="$0 [ -s <device1>,<device2>,.. or all or CB10:CB15 ] <adb_commands and options>"
 
-if [ "${1}" != "-s" -a "${1}" != "-a" ]; then
-	echo "ERROR: Please, specify target devices. Aborting."
-	echo ${usage}
-	exit 1;
-
-elif [ "${1}" == "-a" ]; then
-	DEVICES="all"
-else
-	shift 1
-	DEVICES=${1}
-fi
+[ "${1}" != "-s" ] && die "${usage}"
 
 shift 1
+DEVICES=${1}
+shift 1
 
-[ -z "${DEVICES}"  ] && die "ERROR: specify target devices.  Aborting."
-
-if [ "${DEVICES}" == "all" ]; then
-        DEVICES=`get_all_connected`
-        [ -z "${DEVICES}" ] && die "ERROR: no devices connected. Aborting."
-else
-        DEVICES=${DEVICES//,/" "}
-fi
+#TODO: validate_devices calls the die()function internally if the value of
+#DEVICES is not valid. The problem is that the script does not die. Maybe it's
+#because die only kills the subshell created by the `` 
+DEVICES=`validate_devices ${DEVICES}` || die "${DEVICES}"
 
 # iterate through all the devices
 for dev in ${DEVICES}; do
@@ -47,6 +35,6 @@ for dev in ${DEVICES}; do
         if [ -z "${id}" ]; then
                 echo "ERROR: device ${dev} does not exist in device.lst. Skipping device."
         else
-                adbs ${id} ${*}
+                adb_agnostic ${id} ${*}
         fi
 done

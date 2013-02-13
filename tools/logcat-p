@@ -29,7 +29,7 @@ done
 ID=`name2id ${DEV_NAME}`
 
 if [ -z "${CLASSIC}" ]; then
-	adbs ${ID} logcat | proclogcat ${PKG_NAME} | coloredlogcat.py
+	adbs -s ${ID} logcat | proclogcat ${PKG_NAME} | coloredlogcat.py
 else
-	adbs ${ID} logcat | proclogcat ${PKG_NAME}
+	adbs -s ${ID} logcat | proclogcat ${PKG_NAME}
 fi
