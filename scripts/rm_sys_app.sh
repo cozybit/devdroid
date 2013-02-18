@@ -7,18 +7,18 @@ source `dirname ${0}`/common.sh
 # usage: remove_apps <device_id> <app1> <app2> ...
 function remove_apps () {
 	_ID=${1}; shift 1; _APPS=${*}
-	Q adbs ${_ID} root || { dlog ${_ID} "ERROR: something happened while enabling root permissions. Skipping device."; return 1; }
+	Q adb_agnostic ${_ID} root || { dlog ${_ID} "ERROR: something happened while enabling root permissions. Skipping device."; return 1; }
 	sleep 2
-	Q adbs ${_ID} remount || { dlog ${_ID} "ERROR: something happened while remounting the system partition. Skipping device."; return 1; }
+	Q adb_agnostic ${_ID} remount || { dlog ${_ID} "ERROR: something happened while remounting the system partition. Skipping device."; return 1; }
 	sleep 4
 
 	for app in ${_APPS}; do
-	    adbs ${_ID} shell rm /system/app/${app} | grep "failed" &> /dev/null
+	    adb_agnostic ${_ID} shell rm /system/app/${app} | grep "failed" &> /dev/null
 	    [ $? -eq 0 ] && dlog ${_ID} "ERROR: System app ${app} can't be deleted. Continuing..." && return 1
 	done
 
 	dlog ${_ID} "Applications deleted! Rebooting device."
-	Q adbs ${_ID} reboot
+	Q adb_agnostic ${_ID} reboot
 }
 
 # parse the incoming parameters

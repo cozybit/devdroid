@@ -67,9 +67,9 @@ function block {
 	_ID[1]=`name2id ${2}`
 
 	_MAC=`name2mac ${2}`
-	adbs ${_ID[0]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
+	adb_agnostic ${_ID[0]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
 	_MAC=`name2mac ${1}`
-	adbs ${_ID[1]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
+	adb_agnostic ${_ID[1]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
 }
 
 #name of the mesh iface

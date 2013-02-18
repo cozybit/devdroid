@@ -13,7 +13,7 @@ function install_apks () {
 
 	for apk in ${_FULL_LIST}; do
 	    dlog ${_ID} "Installing $(basename ${apk}) ..."
-	    adbs ${_ID} install -r ${apk} | grep "Failure" &> /dev/null
+	    adb_agnostic ${_ID} install -r ${apk} | grep "Failure" &> /dev/null
 	    [ $? -eq 0 ] && dlog ${_ID} "ERROR: something happened when installing ${apk}. Continuing..."
 	done
 
