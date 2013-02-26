@@ -15,4 +15,4 @@ else
         die "ERROR: config file ${ANT_CONF} does not exist. Aborting."
 fi
 
-ant -Dkey.store=${KEYSTORE_PATH} -Dkey.store.password=${KEYSTORE_PASSWD} -Dkey.alias=${KEY_ALIAS} -Dkey.alias.password=${KEY_ALIAS_PASSWD} -Dsdk.dir=${SDK_DIR} $*
+ant -Dkey.store=${KEYSTORE_PATH} -Dkey.store.password=${KEYSTORE_PASSWD} -Dkey.alias=${KEY_ALIAS} -Dkey.alias.password=${KEY_ALIAS_PASSWD} -Dsdk.dir=${ANDROID_SDK} $*

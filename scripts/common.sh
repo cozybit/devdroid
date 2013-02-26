@@ -311,12 +311,13 @@ else
 fi
 
 # validate minimal configuration
-[ -z ${AOSP_DIR} ] && die "ERROR: No AOSP_DIR specified"
-[ -z ${OTHER_APKS_DIR} ] && die "ERROR: No OTHER_APKS_DIR directory specified"
-[ -z ${RELEASES_DIR} ] && die "ERROR: No RELEASES_DIR directory specified"
-[ -z ${AOSP_VERSION} ] && die "ERROR: No AOSP_VERSION specified"
-[ -z ${AOSP_FLAVOR} ] && die "ERROR: No AOSP_FLAVOR specified"
-[ -z ${AOSP_BUILD_TYPE} ] && die "ERROR: No AOSP_BUILD_TYPE specified"
-[ -z ${ADB_TCP_PORT} ] && die "ERROR: No ADB_TCP_PORT specified"
+[ -z "${ANDROID_SDK}" ] && die "ERROR: No ANDROID_SDK specified. Please, set this env variable (in .basrch)"
+[ -z "${AOSP_DIR}" ] && die "ERROR: No AOSP_DIR specified. See devdroid.conf"
+[ -z "${OTHER_APKS_DIR}" ] && die "ERROR: No OTHER_APKS_DIR directory specified. See devdroid.conf"
+[ -z "${RELEASES_DIR}" ] && die "ERROR: No RELEASES_DIR directory specified. See devdroid.conf"
+[ -z "${AOSP_VERSION}" ] && die "ERROR: No AOSP_VERSION specified. See devdroid.conf"
+[ -z "${AOSP_FLAVOR}" ] && die "ERROR: No AOSP_FLAVOR specified. See devdroid.conf"
+[ -z "${AOSP_BUILD_TYPE}" ] && die "ERROR: No AOSP_BUILD_TYPE specified. See devdroid.conf"
+[ -z "${ADB_TCP_PORT}" ] && die "ERROR: No ADB_TCP_PORT specified. See devdroid.conf"
 
 export AOSP_OUT_DIR=${AOSP_DIR}/out/target/product/${AOSP_FLAVOR}
