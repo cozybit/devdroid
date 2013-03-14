@@ -40,7 +40,7 @@ while getopts "hirs:t:" options; do
 	t ) BUILD_TYPE=${OPTARG};;
         h ) echo ${usage}
 	    echo "-i       skip building step, just install."
-	    echo "-s       list of target devices (CB01,CB02). For all connected use \"all\"."
+	    echo "-s       list of target devices (-s CB1,CB2:CB8,CB15:CB20,CB99). For all connected use \"all\"."
             echo "-r       run the app just after installing it."
             echo "-t       type of build: debug/release."
             echo "-h       print this message."
@@ -50,10 +50,7 @@ while getopts "hirs:t:" options; do
     esac
 done
 
-#TODO: validate_devices calls the die()function internally if the value of
-#DEVICES is not valid. The problem is that the script does not die. Maybe it's
-#because die only kills the subshell created by the `` 
-DEVICES=`validate_devices ${DEVICES}` || die "${DEVICES}"
+DEVICES=`validate_devices ${DEVICES}` || die "ERROR: specified devices are not valid. Valid format: -s CB1,CB2:CB8,CB15:CB20,CB99"
 
 [ "${BUILD_TYPE}" != "debug" -a "${BUILD_TYPE}" != "release" ] && die "ERROR: specify a valid build type: debug/release. Aborting."
 

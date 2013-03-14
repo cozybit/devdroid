@@ -23,10 +23,7 @@ shift 1
 DEVICES=${1}
 shift 1
 
-#TODO: validate_devices calls the die()function internally if the value of
-#DEVICES is not valid. The problem is that the script does not die. Maybe it's
-#because die only kills the subshell created by the `` 
-DEVICES=`validate_devices ${DEVICES}` || die "${DEVICES}"
+DEVICES=`validate_devices ${DEVICES}` || die "ERROR: specified devices are not valid. Valid format: -s CB1,CB2:CB8,CB15:CB20,CB99"
 
 # iterate through all the devices
 for dev in ${DEVICES}; do

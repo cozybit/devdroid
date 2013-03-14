@@ -23,33 +23,55 @@ function die () {
 	exit -1
 }
 
+# print message in STDERR
+# usage: logerr <err_msg>
+function logerr() {
+	echo "[STDERR]" ${*} 1>&2
+}
+
 # validate a list of given devices and returns a formatted list. The returned
-# list is just the list of devices separated by spaces. If not fails.
-# valid input formats: 
-#   CB01,CB02,CB03 | all | CB01:CB10
+# list is just the list of devices separated by spaces.
+# Check the return value, to make sure the returned list is valid or not. If 0,
+# the list is valid. If 1, list is not valid.
+# Valid input formats:
+#   CB1,CB2,CB3 | all | CB01:CB10
 # usage: validate_devices <devices>
+# example: validate_devices CB1,CB2:CB8,CB15:CB20,CB99
 function validate_devices() {
 
 	_DEVS=${1}
 
-	[ -z "${_DEVS}" ] && die "ERROR: specify target devices.  Aborting."
+	[ -z "${_DEVS}" ] && { logerr "Specify target devices."; return 1; }
 
         if [ "${_DEVS}" == "all" ]; then
-                _DEVS=`get_all_connected`
-                [ -z "${_DEVS}" ] && die "ERROR: no devices connected. Aborting."
-        elif [[ "${_DEVS}" =~ ":"  ]]; then
-                _RANGE=${_DEVS//CB/}
+                _LIST=`get_all_connected`
+                [ -z "${_LIST}" ] &&  { logerr "No devices connected."; return 1; }
+	else
+		for dev in ${_DEVS//,/" "}; do
+			[[ "${dev}" =~ ":"  ]] && { dev=`dev_range2list ${dev}` || return 1; }
+			_LIST="${_LIST} ${dev}"
+		done
+	fi
+
+	echo ${_LIST} && return 0
+}
+
+# converts a range of devices into a list
+# usage: dev_range2list() CBX:CBY
+function dev_range2list () {
+
+	if [[ "${1}" =~ ":"  ]]; then
+		_RANGE=${1//CB/}
 		_OLD_IFS="${IFS}"
 		IFS=":"
 		_RANGE=( ${_RANGE} )
 		IFS="${_OLD_IFS}"
-                [ "${_RANGE[0]}" -lt "${_RANGE[1]}" ] || die "ERROR: invalid range of devices. Right format: CB05:CB10"
-                _DEVS="CB`seq -s " CB" ${_RANGE[0]} ${_RANGE[1]}`"
-        else
-                _DEVS=${_DEVS//,/" "}
-        fi
-
-	echo ${_DEVS} && return 0
+		[ "${_RANGE[0]}" -lt "${_RANGE[1]}" ] || { logerr "Invalid range of devices -> ${1}. Right format: CB5:CB10"; return 1; }
+		_LIST="CB`seq -s " CB" ${_RANGE[0]} ${_RANGE[1]}`"
+		echo ${_LIST} && return 0
+	else
+		echo "" && return 1
+	fi
 }
 
 # adb_agnostic check the status device before executing the adb command
@@ -204,7 +226,7 @@ function cat_conf () {
 # usage: name2id <device_name>
 function name2id () {
 	_DEV_NAME=${1}
-	_DEV_ID=`cat_conf | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f2`
+	_DEV_ID=`cat_conf | grep "${_DEV_NAME};" 2>/dev/null | cut -d";" -f2`
 	[ -z "${_DEV_ID}" ] && { echo "WARNING: Device ${_DEV_NAME} has no ID assigned in devices.lst.">/dev/stderr ; return 1; }
 	echo -n ${_DEV_ID}
 }
@@ -254,7 +276,7 @@ function ip2name () {
 # usage: name2mac <device_name>
 function name2mac () {
 	_DEV_NAME=${1}
-	_DEV_MAC=`cat_conf | grep ${_DEV_NAME} 2>/dev/null | cut -d";" -f4`
+	_DEV_MAC=`cat_conf | grep "${_DEV_NAME};" 2>/dev/null | cut -d";" -f4`
 	[ -z "${_DEV_MAC}" ] && { echo "WARNING: Device ${_DEV_IP} has no MAC for its mesh iface in devices.lst.">/dev/stderr; return 1; }
 	echo -n ${_DEV_MAC}
 }
