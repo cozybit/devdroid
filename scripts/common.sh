@@ -80,7 +80,7 @@ function adb_agnostic () {
 	_ID=${1}; shift 1;
 	_DEV_NAME=`id2name ${_ID}`
 	if ! is_adb_mode ${_ID} && ! _IP=`is_tcpip_mode ${_ID}` ; then
-		echo "[${_DEV_NAME}/${_ID}] WARNING: device not connected to adb (via USB or TCP). Skipping device." >/dev/stderr
+		logerr "[${_DEV_NAME}/${_ID}] WARNING: device not connected to adb (via USB or TCP). Skipping device."
 		return 1
 	fi
 	# if is not USB adb, then replace ID with IP:PORT
@@ -174,7 +174,7 @@ function is_tcpip_mode () {
 	[ -z "${_IPS}" ] && return 1
 	IFS=","
 	for ip in ${_IPS}; do
-		sudo ping -f -c 4 -w 3 ${ip} &>/dev/null
+		Q ping -i 0.2 -c 4 -w 3 ${ip}
 		if [ $? -eq 0 ]; then
 			adb connect ${ip}:${ADB_TCP_PORT} &>/dev/null
 			sleep 1
