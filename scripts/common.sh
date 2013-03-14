@@ -1,10 +1,10 @@
-# perform a command quietly unless debugging is enabled.i
+# perform a command quietly unless verbose mode is enabled.
 # usage: Q <anything>
 function Q () {
         if [ "${VERBOSE}" == "1" ]; then
                 $*
         else
-                $* &> /dev/null
+                $* 1> /dev/null
         fi
 }
 
@@ -236,7 +236,7 @@ function name2id () {
 # usage: name2id <device_name>
 function id2name () {
 	_DEV_ID=${1}
-	_DEV_NAME=`cat_conf | grep ${_DEV_ID} 2>/dev/null | cut -d";" -f1`
+	_DEV_NAME=`cat_conf | grep "${_DEV_ID};" 2>/dev/null | cut -d";" -f1`
 	[ -z "${_DEV_NAME}" ] && { echo "WARNING: Device ${_DEV_ID} has no name assigned in devices.lst.">/dev/stderr ; return 1; }
 	echo -n ${_DEV_NAME}
 }
@@ -246,7 +246,7 @@ function id2name () {
 # usage: id2ips <device_ID>
 function id2ips () {
         _DEV_ID=${1}
-        _DEV_IP=`cat_conf | grep ${_DEV_ID} 2>/dev/null | cut -d";" -f3`
+        _DEV_IP=`cat_conf | grep "${_DEV_ID};" 2>/dev/null | cut -d";" -f3`
 	[ -z "${_DEV_IP}" ] && { echo "WARNING: Device ${_DEV_ID} has no IP assigned in devices.lst.">/dev/stderr ; return 1; }
         echo -n ${_DEV_IP}
 }

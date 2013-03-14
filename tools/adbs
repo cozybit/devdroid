@@ -15,13 +15,17 @@
 source `dirname ${0}`/common.sh
 
 # parse the incoming parameters
-usage="$0 [ -s <device1>,<device2>,.. or all or CB10:CB15 ] <adb_commands and options>"
+usage="$0 [ -s <device1>,<device2>,.. or all or CB10:CB15 ] <adb_commands and options> [ -p ]"
 
 [ "${1}" != "-s" ] && die "${usage}"
 
 shift 1
 DEVICES=${1}
 shift 1
+
+[ "${1}" == "-p" ] && { PARALLEL="yes"; shift 1; }
+
+CMD=${*}
 
 DEVICES=`validate_devices ${DEVICES}` || die "ERROR: specified devices are not valid. Valid format: -s CB1,CB2:CB8,CB15:CB20,CB99"
 
@@ -30,8 +34,14 @@ for dev in ${DEVICES}; do
         id=`name2id ${dev}`
         #verify the device name first
         if [ -z "${id}" ]; then
-                echo "ERROR: device ${dev} does not exist in device.lst. Skipping device."
+                logerr "Device ${dev} does not exist in device.lst. Device will be skipped."
         else
-                adb_agnostic ${id} ${*}
+                if [ -n "${PARALLEL}" ]; then
+			adb_agnostic ${id} ${CMD} &
+		else
+			adb_agnostic ${id} ${CMD}
+		fi
         fi
 done
+
+[ -n "${PARALLEL}" ] && wait
