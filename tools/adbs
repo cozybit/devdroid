@@ -37,11 +37,19 @@ for dev in ${DEVICES}; do
                 logerr "Device ${dev} does not exist in device.lst. Device will be skipped."
         else
                 if [ -n "${PARALLEL}" ]; then
-			adb_agnostic ${id} ${CMD} &
+			adb_agnostic ${id} ${CMD} &> /tmp/adb-parallel-${dev}.out &
 		else
 			adb_agnostic ${id} ${CMD}
 		fi
         fi
 done
 
-[ -n "${PARALLEL}" ] && wait
+if [ -n "${PARALLEL}" ]; then
+	# wait until all the adb_agnostic are done
+	wait
+	# print the logs secuentially
+	for dev in ${DEVICES}; do
+		cat /tmp/adb-parallel-${dev}.out
+		rm /tmp/adb-parallel-${dev}.out &>/dev/null
+	done
+fi
