@@ -69,7 +69,7 @@ for dev in ${DEVICES}; do
 	id=`name2id ${dev}`
 	app=`ls bin/*-${BUILD_TYPE}.apk`
 	echo "[${dev}] Installing ${app} (${BUILD_TYPE} version)..."
-	OUT=`adb_agnostic ${dev} install -r ${app}`
+	OUT=`adb_agnostic ${id} install -r ${app}`
 	# check if it failed because of inconsistent certificates.
 	if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
 		echo "[${dev}] UNINSTALLING app....."
