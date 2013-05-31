@@ -245,7 +245,7 @@ ant-b release > build.log || die "ERROR: the project does not build. Check ${PWD
 # increase version name, because development will continue from now on
 VNAME_PLUS=`increaseVersionName ${VNAME}`
 updateVersionName ${VNAME_PLUS} || die "ERROR: versionName couldn't be updated."
-git commit -a -m "Set normal version name : ${VNAME_PLUS}" || \
+git commit -a -m "Increase version name to allow dev : ${VNAME_PLUS}" || \
 	die "ERROR: unable to commit release message."
 
 # push tags and commits
