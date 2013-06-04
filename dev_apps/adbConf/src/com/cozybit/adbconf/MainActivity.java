@@ -1,13 +1,20 @@
 package com.cozybit.adbconf;
 
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+
 import com.cozybit.adbconf.utils.shell.CmdOutput;
 import com.cozybit.adbconf.utils.shell.Shell;
 import com.cozybit.adbconf.utils.shell.Shell.ShellException;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 
 public class MainActivity extends Activity {
 
@@ -18,6 +25,15 @@ public class MainActivity extends Activity {
 	private final static int NO_OUTPUT_DIALOG = 1;
 	private final static int SETPROP_ERROR_DIALOG = 2;
 	private final static int ADB_ERROR_DIALOG = 3;
+	private final static int IPSET_ERROR_DIALOG = 4;
+	private final static int NETUP_ERROR_DIALOG = 5;
+	private final static int NO_SERIAL_DIALOG = 6;
+	
+	private final static String IFACE_NAME = "eth0";
+	private final static int NET_IP = 11;
+	private final static int NET_MASK = 8;
+	
+	Button ethConfigButton;
 
 	/**
 	 * IMPORTANT: this app requires ROOT privileges in order to work.
@@ -28,6 +44,15 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		ethConfigButton = (Button) findViewById(R.id.eth_button);
+	}
+	
+	@Override
+	public void onResume() {
+		 Log.d("ADB_CONF", "onResume()!!!");
+		int visibility = isValidIface(IFACE_NAME)? View.VISIBLE:View.GONE;  
+		ethConfigButton.setVisibility(visibility);
+		super.onResume();
 	}
 
 	public void onAdbUSBButton(View view) {
@@ -37,21 +62,75 @@ public class MainActivity extends Activity {
 	public void onAdbTCPButton(View view) {
 		configAdbMode(TCP_MODE);
 	}
+	
+	public void onEthModeButton(View view) {
+		if(Build.SERIAL != null && !Build.SERIAL.isEmpty() ) { 
+			if( configEthernet() )
+				configAdbMode(TCP_MODE);
+		} else
+			promptDialog(NO_SERIAL_DIALOG, null);			
+	}
 
-	private void configAdbMode(int port) {
+	private boolean configAdbMode(int port) {
 
 		try {
 			CmdOutput output = Shell.sudo("setprop service.adb.tcp.port " + port);
-			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return; }
-			if ( output.exitValue != 0 ) { promptDialog(SETPROP_ERROR_DIALOG, output.STDERR); return; }
+			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
+			if ( output.exitValue != 0 ) { promptDialog(SETPROP_ERROR_DIALOG, output.STDERR); return false; }
 			output = Shell.sudo("stop adbd; start adbd");
-			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return; }
+			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
 			if ( output.exitValue != 0 ) promptDialog(ADB_ERROR_DIALOG, output.STDERR);
 		} catch (ShellException e) {
 			e.printStackTrace();
 			promptDialog(SHELL_ERROR_DIALOG, null);
+			return false;
 		}
+		
+		return true;
 	}
+	
+	private boolean configEthernet() {
+				
+		StringBuffer ip = new StringBuffer();
+		ip.append(NET_IP);
+		//get the first 6 characters of the serial number to create the ip
+		String serial = Build.SERIAL.substring( (Build.SERIAL.length()-6), Build.SERIAL.length() );
+		serial = serial.toLowerCase();		
+		for (int offset = 0; offset < serial.length(); offset=offset+2 ) {
+			String segment = serial.substring(offset, offset+2);
+			ip.append(".");
+			ip.append(Integer.parseInt(segment, 16));
+		}
+				
+		try {
+			CmdOutput output = Shell.sudo("ip address add dev " + IFACE_NAME + " " + ip.toString() + "/" + NET_MASK);
+			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
+			if ( output.exitValue != 0 ) { promptDialog(IPSET_ERROR_DIALOG, output.STDERR); return false; }
+			output = Shell.sudo("netcfg " + IFACE_NAME + " up");
+			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
+			if ( output.exitValue != 0 ) { promptDialog(NETUP_ERROR_DIALOG, output.STDERR); return false; }
+		} catch (ShellException e) {
+			e.printStackTrace();
+			promptDialog(SHELL_ERROR_DIALOG, null);
+			return false;
+		}
+		
+		return true;
+	}
+	
+    //check if the mesh interface is up
+    private boolean isValidIface(String ifaceName) {
+    	try {
+    		for(Enumeration<NetworkInterface> list = NetworkInterface.getNetworkInterfaces(); list.hasMoreElements();) {
+                    NetworkInterface i = list.nextElement();
+                    if( i.getDisplayName().equals(ifaceName) )
+                    	return true;
+            }
+		} catch (SocketException e) {
+			e.printStackTrace();
+		}
+    	return false;
+    }
 
 	private void promptDialog(int dialogId, String msg) {
 
@@ -80,6 +159,21 @@ public class MainActivity extends Activity {
 			builder.setTitle("Adb Error");
 			builder.setMessage("An error occured while restarting adbd. Error: " + msg);
 			break;
+			
+		case IPSET_ERROR_DIALOG:
+			builder.setTitle("Ip Error");
+			builder.setMessage("An error occured while configuren the ip address: " + msg);
+			break;
+			
+		case NETUP_ERROR_DIALOG:
+			builder.setTitle("Interface Error");
+			builder.setMessage("An error occured while bringing the interface up: " + msg);
+			break;
+			
+		case NO_SERIAL_DIALOG:
+			builder.setTitle("No Serial Number");
+			builder.setMessage("Error: the device does not have a serial number. The serial # is needed to create a valid IP address and configure the iface.");
+			break;			
         }
 
         AlertDialog ad = builder.create();
