@@ -246,9 +246,13 @@ function id2name () {
 # usage: id2ips <device_ID>
 function id2ips () {
         _DEV_ID=${1}
-        _DEV_IP=`cat_conf | grep "${_DEV_ID};" 2>/dev/null | cut -d";" -f3`
-	[ -z "${_DEV_IP}" ] && { echo "WARNING: Device ${_DEV_ID} has no IP assigned in devices.lst.">/dev/stderr ; return 1; }
-        echo -n ${_DEV_IP}
+	# generate the wired ctl IP
+	_DEV_WIRED_IP=`genIpFromId ${WIRED_NET_PREFIX} ${_DEV_ID}`
+	[ -n "${_DEV_WIRED_IP}" ] && _IP_LIST+="${_DEV_WIRED_IP},"
+        #TODO we should do this with the mesh ctl IP too and delete it from the devices.lst
+        _IP_LIST+=`cat_conf | grep "${_DEV_ID};" 2>/dev/null | cut -d";" -f3`
+	[ -z "${_IP_LIST}" ] && { echo "WARNING: Device ${_DEV_ID} has no IP assigned in devices.lst.">/dev/stderr ; return 1; }
+        echo -n ${_IP_LIST}
 }
 
 # returns the ID that corresponds to the given IP.
@@ -281,14 +285,33 @@ function name2mac () {
 	echo -n ${_DEV_MAC}
 }
 
-# converts a given MAC address to a known IP with format 10.X.X.X
-# usage: mac2ip <mac_address>
-function mac2ip () {
-        _MAC=`echo ${1} | tr '[:lower:]' '[:upper:]'`
+# creates an ip based on a given NET prefix + the last 6 bytes of a mac
+# address. The resulting IP will look like: <NET>.<X.Y.Z> 
+# usage: genIpFromMac <NET> <mac_address>
+function genIpFromMac () {
+	_NET=${1}
+        _MAC=`echo ${2} | tr '[:lower:]' '[:upper:]'`
 	[ -z ${_MAC} ] && return 1
         _HEX=(${_MAC//:/" "})
-        _IP="10"
+        _IP=${_NET}
         for i in 3 4 5; do
+                _DEC=`echo "ibase=16; ${_HEX[$i]}" | bc`
+                _IP=${_IP}.${_DEC}
+        done
+        echo -n ${_IP}
+}
+
+# creates an ip based on a given NET prefix + the last 6 bytes of device serial Id
+# The resulting IP will look like: <NET>.<X.Y.Z> 
+# usage: genIpFromMac <NET> <id>
+function genIpFromId () {
+#	set -x
+        _NET=${1}
+	_HEX=( `echo ${2: -6} | tr '[:lower:]' '[:upper:]' | fold -w2` )
+	#_MAC=`echo ${2} | tr '[:lower:]' '[:upper:]'`
+        [ -z ${_HEX} ] && return 1
+        _IP=${_NET}
+	for i in 0 1 2; do
                 _DEC=`echo "ibase=16; ${_HEX[$i]}" | bc`
                 _IP=${_IP}.${_DEC}
         done
@@ -341,5 +364,14 @@ fi
 [ -z "${AOSP_FLAVOR}" ] && die "ERROR: No AOSP_FLAVOR specified. See devdroid.conf"
 [ -z "${AOSP_BUILD_TYPE}" ] && die "ERROR: No AOSP_BUILD_TYPE specified. See devdroid.conf"
 [ -z "${ADB_TCP_PORT}" ] && die "ERROR: No ADB_TCP_PORT specified. See devdroid.conf"
+
+if [ -n "${WIRED_IFACE}" -a -n ${WIRED_NET_PREFIX} -a -n ${NET_MASK} ]; then
+	HOST_WIRED_MAC=`if2mac ${WIRED_IFACE}`
+	HOST_WIRED_IP=`genIpFromMac ${WIRED_NET_PREFIX} ${HOST_WIRED_MAC}`
+	ip addr show ${WIRED_IFACE} | grep -r "inet ${WIRED_NET_PREFIX}." &>/dev/null || \
+		sudo ip address add dev ${WIRED_IFACE} ${HOST_WIRED_IP}/${NET_MASK}
+fi
+
+#TODO do the same for the mesh iface
 
 export AOSP_OUT_DIR=${AOSP_DIR}/out/target/product/${AOSP_FLAVOR}
