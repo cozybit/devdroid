@@ -22,6 +22,7 @@ while getopts "cs:p:h" options; do
     esac
 done
 
+[ -z "`which xmllint`" ] && die "xmllint tool not available. Please, install the libxml2-utils package."
 [ -z "${PKG_NAME}" -a -f AndroidManifest.xml ] && PKG_NAME=`extractAttributeXML AndroidManifest.xml /manifest package`
 [ -z "${PKG_NAME}" ] && die "Please, provide a package name. ${usage}."
 [ -z "${DEV_NAME}" ] && die "Please, provide the name of device."
