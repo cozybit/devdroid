@@ -5,8 +5,13 @@
 #
 # It requires the build-tools project/repo, available in burning-chrome.
 
+# Source common functions and parse options
+source `dirname ${0}`/common.sh
+
 # allow user to override configuration file in environment
 [ -z ${ANT_CONF} ] && ANT_CONF=${DEVDROID}/config/ant.conf
+# check for the an tool
+[ -z "`which ant`" ] && die "ERROR: ant tool not installed. Please install the ant package from the repositories. Aborting."
 
 # source the config variables
 if [ -e ${ANT_CONF} ]; then

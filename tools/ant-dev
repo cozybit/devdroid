@@ -5,7 +5,8 @@
 # happening.
 # 
 # NOTES: This script uses the ant-b script in order to build the android
-# projects with the right keys, etc. You need to install it in the ~/bin folder
+# projects with the right keys, etc. Make sure that ant.conf has the right
+# values.
 #
 # author: Guillermo A. Nunez <guillermo@cozybit.com>
 
@@ -48,7 +49,7 @@ sed -i -e "s/${VER_ATTR}=\"${INIT_VERSION_NAME}\"/${VER_ATTR}=\"${VERSION_NAME}-
 	die "ERROR: could not extend the version name in ${FILE}. Aborting."
 
 # build the app 
-ant-b $*
+$(dirname $0)/ant-b $*
 RETURN=$?
 
 # restore the original file (even if the build fails)
