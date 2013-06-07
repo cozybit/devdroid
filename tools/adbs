@@ -14,9 +14,30 @@
 # source common functions and parse options
 source `dirname ${0}`/common.sh
 
-# parse the incoming parameters
-usage="$0 [ -s <device1>,<device2>,.. or all or CB10:CB15 ] <adb_commands and options> [ -p ]"
+prog=`basename $0`
+usage=$(cat <<EOF
+Usage: $prog -s <DEVICE_SPEC> [ -p ] <adb_commands and options>
 
+Options:
+    -s <DEVICE_SPEC>       List of devices to use
+    -p                     Run in parallel
+
+Where DEVICE_SPEC can be
+    - List of devices:     <device1>[,<device2>,<deviceN>,...]
+    - All devices:         all
+    - Range of devices:    <deviceN>:<deviceN+M>
+
+Examples:
+
+    $prog -s all install SomeThing.apk
+
+    $prog -s CB01,CB05,CB06 shell cat /tmp/some/file.txt
+
+    $prog -s CB10:CB15 -p shell am instrument -w tests/android.test.InstrumentationTestRunner
+EOF
+)
+
+# parse the incoming parameters
 [ "${1}" != "-s" ] && die "${usage}"
 
 shift 1

@@ -19,7 +19,7 @@ function dlog () {
 # print message and exit the script
 # usage: die <message>
 function die () {
-	echo ${*}
+	echo "${*}"
 	exit -1
 }
 
