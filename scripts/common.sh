@@ -356,7 +356,7 @@ else
 fi
 
 # validate minimal configuration
-[ -z "${ANDROID_SDK}" ] && die "ERROR: No ANDROID_SDK specified. Please, set this env variable (in .basrch)"
+[ -z "${ANDROID_SDK}" ] && die "ERROR: No ANDROID_SDK specified. Please, set this env variable (in .bashrc)"
 [ -z "${AOSP_DIR}" ] && die "ERROR: No AOSP_DIR specified. See devdroid.conf"
 [ -z "${OTHER_APKS_DIR}" ] && die "ERROR: No OTHER_APKS_DIR directory specified. See devdroid.conf"
 [ -z "${RELEASES_DIR}" ] && die "ERROR: No RELEASES_DIR directory specified. See devdroid.conf"
