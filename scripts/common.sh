@@ -368,7 +368,7 @@ fi
 if [ -n "${WIRED_IFACE}" -a -n ${WIRED_NET_PREFIX} -a -n ${NET_MASK} ]; then
 	HOST_WIRED_MAC=`if2mac ${WIRED_IFACE}`
 	HOST_WIRED_IP=`genIpFromMac ${WIRED_NET_PREFIX} ${HOST_WIRED_MAC}`
-	ip addr show ${WIRED_IFACE} | grep -r "inet ${WIRED_NET_PREFIX}." &>/dev/null || \
+	ip addr show ${WIRED_IFACE} | grep "inet ${WIRED_NET_PREFIX}." &>/dev/null || \
 		sudo ip address add dev ${WIRED_IFACE} ${HOST_WIRED_IP}/${NET_MASK}
 fi
 
