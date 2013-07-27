@@ -49,9 +49,10 @@ public class MainActivity extends Activity {
 	
 	@Override
 	public void onResume() {
-		 Log.d("ADB_CONF", "onResume()!!!");
-		int visibility = isValidIface(IFACE_NAME)? View.VISIBLE:View.GONE;  
-		ethConfigButton.setVisibility(visibility);
+		//Log.d("ADB_CONF", "onResume()!!!");
+		//int visibility = isValidIface(IFACE_NAME)? View.VISIBLE:View.GONE;  
+		//ethConfigButton.setVisibility(visibility);
+		ethConfigButton.setVisibility(View.VISIBLE);
 		super.onResume();
 	}
 
