@@ -14,7 +14,7 @@ function flash_images () {
 	_ID=${1}
 	_IMG_PATH=${2}
 	#Check if it is in adb mode
-	if is_adb_mode ${_ID}; then
+	if is_usb_adb ${_ID}; then
 		dlog ${_ID} "Rebooting device in fastboot mode."
 		adb -s ${_ID} reboot bootloader
 		#start checking if the device is already booted (2 mins max)
@@ -45,7 +45,7 @@ function flash_part() {
 	IFS=${OLDIFS}
 
 
-	if is_adb_mode ${_ID}; then
+	if is_usb_adb ${_ID}; then
                 dlog ${_ID} "Rebooting device in fastboot mode."
                 adb -s ${_ID} reboot bootloader
                 #start checking if the device is already booted (2 mins max)

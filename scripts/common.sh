@@ -74,17 +74,18 @@ function dev_range2list () {
 	fi
 }
 
-# adb_agnostic check the status device before executing the adb command
+# adb_agnostic checks the adb status (usb or tcpip) of the device before
+# executing the adb command
 # usage: adb_agnostic <device_id> <adb params>
 function adb_agnostic () {
 	_ID=${1}; shift 1;
 	_DEV_NAME=`id2name ${_ID}`
-	if ! is_adb_mode ${_ID} && ! _IP=`is_tcpip_mode ${_ID}` ; then
+	if ! is_usb_adb ${_ID} && ! _IP=`is_tcpip_adb ${_ID}` ; then
 		logerr "[${_DEV_NAME}/${_ID}] WARNING: device not connected to adb (via USB or TCP). Skipping device."
 		return 1
 	fi
 	# if is not USB adb, then replace ID with IP:PORT
-	is_adb_mode ${_ID} || _ID=${_IP}:${ADB_TCP_PORT}
+	is_usb_adb ${_ID} || _ID=${_IP}:${ADB_TCP_PORT}
 	echo "[${_DEV_NAME}] adb ${*}"
 	adb -s ${_ID} ${*}
 }
@@ -151,10 +152,52 @@ function extract_value () {
 }
 
 # check if the device ${1} is in adb mode
-# usage: is_adb_mode <device_id>
-function is_adb_mode () {
+# usage: is_usb_adb <device_id>
+function is_usb_adb () {
 	_ID=${1}
 	adb devices | grep ${_ID} | grep device &>/dev/null && return 0
+	return 1
+}
+
+# checks if a given device is alredy connected via adb tcpip and that it's
+# reachable in the network. If the device is not rechable, it will be
+# disconnected from the local adb.
+# usage: is_tcpip_adb_connected <device_id>
+function is_tcpip_adb_connected() {
+	_ID=${1}
+	_IPS=`id2ips ${_ID}`
+	[ -z "${_IPS}" ] && return 1
+	IFS=","
+	for ip in ${_IPS}; do
+		adb devices | grep ${ip} | grep device &>/dev/null
+		if [ $? -eq 0 ]; then
+			Q ping -i 0.2 -c 4 -w 3 ${ip}
+			[ $? -eq 0 ] && echo -n ${ip} && return 0
+			adb disconnect ${ip} &> /dev/null
+			break
+		fi
+	done
+	return 1
+}
+
+# checks if a device is in adb tcpip mode, not connected to the local adb but
+# reachable in the network.
+# usage: is_tcpip_adb_connected <device_id>
+function is_tcpip_adb_unconnected() {
+	_ID=${1}
+	_IPS=`id2ips ${_ID}`
+	[ -z "${_IPS}" ] && return 1
+	
+	IFS=","
+	for ip in ${_IPS}; do
+		Q ping -i 0.2 -c 4 -w 3 ${ip}
+		if [ $? -eq 0 ]; then
+			adb connect ${ip}:${ADB_TCP_PORT} &>/dev/null
+			sleep 1
+			adb devices | grep ${ip} | grep device &>/dev/null && echo -n ${ip} && return 0
+		fi
+		break
+	done
 	return 1
 }
 
@@ -167,21 +210,18 @@ function is_fastboot_mode () {
 }
 
 # check if the device ${1} is in tcpip mode
-# usage: is_tcpip_mode <device_id>
-function is_tcpip_mode () {
+# usage: is_tcpip_adb <device_id>
+function is_tcpip_adb () {
 	_ID=${1}
-	_IPS=`id2ips ${_ID}`
-	[ -z "${_IPS}" ] && return 1
-	IFS=","
-	for ip in ${_IPS}; do
-		Q ping -i 0.2 -c 4 -w 3 ${ip}
-		if [ $? -eq 0 ]; then
-			adb connect ${ip}:${ADB_TCP_PORT} &>/dev/null
-			sleep 1
-			adb devices | grep ${ip} | grep device &>/dev/null && echo -n ${ip} && return 0
+
+	if _IP=`is_tcpip_adb_connected ${_ID}` ; then
+		echo -n ${_IP} && return 0
+	else
+		if _IP=`is_tcpip_adb_unconnected ${_ID}` ; then
+			echo -n ${_IP} && return 0
 		fi
-		adb disconnect ${ip} &>/dev/null
-	done
+	fi
+	
 	return 1
 }
 
