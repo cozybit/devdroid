@@ -37,15 +37,21 @@ Examples:
 EOF
 )
 
-# parse the incoming parameters
-[ "${1}" != "-s" ] && die "${usage}"
+POS=0
+while getopts "chs:p" opt; do
+    case ${opt} in
+        c ) CHECK="yes";;
+        s ) DEVICES=${OPTARG};;
+        p ) PARALLEL="yes";;
+        h ) echo ${usage}
+            exit 0;;
+        * ) die "ERROR: invalid adbs option. Check the help (-h).";;
+    esac
+    POS=$((POS+1))
+    [ -n "${OPTARG}" ] && POS=$((POS+1))
+done
 
-shift 1
-DEVICES=${1}
-shift 1
-
-[ "${1}" == "-p" ] && { PARALLEL="yes"; shift 1; }
-
+shift ${POS}
 CMD=${*}
 
 DEVICES=`validate_devices ${DEVICES}` || die "ERROR: specified devices are not valid. Valid format: -s CB1,CB2:CB8,CB15:CB20,CB99"
