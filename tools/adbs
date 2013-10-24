@@ -14,6 +14,7 @@
 # source common functions and parse options
 source `dirname ${0}`/common.sh
 
+MYPID=${BASHPID}
 prog=`basename $0`
 usage=$(cat <<EOF
 Usage: $prog -s <DEVICE_SPEC> [ -p ] <adb_commands and options>
@@ -54,7 +55,21 @@ done
 shift ${POS}
 CMD=${*}
 
-DEVICES=`validate_devices ${DEVICES}` || die "ERROR: specified devices are not valid. Valid format: -s CB1,CB2:CB8,CB15:CB20,CB99"
+DEVICES=`expand_compressed_list ${DEVICES}` || die "ERROR: format of the devs list is not valid. Valid format: -s CB1,CB2:CB8 or -s all."
+validate_dev_name_list ${DEVICES} || die "ERROR: the list of input devices is not valid (non-exitant dev? duplicated?)."
+
+if [ -n "${CHECK}" ]; then
+	_devs=`echo ${DEVICES} | wc -w`
+	adbs -s ${DEVICES// /,} -p shell echo test &> /tmp/adbs-check-${MYPID}.out
+	_responses=`cat /tmp/adbs-check-${MYPID}.out | grep -v adb | grep -w "test" | wc -l`
+	if [ ${_devs} -ne ${_responses} ]; then
+		echo "ERROR: next devices are not reachable:"
+		cat /tmp/adbs-check-${MYPID}.out | grep -v "test"
+		rm -f /tmp/adbs-check-${MYPID}.out &>/dev/null
+		exit -1
+	fi
+	rm -f /tmp/adbs-check-${MYPID}.out &>/dev/null
+fi
 
 # iterate through all the devices
 for dev in ${DEVICES}; do
@@ -64,7 +79,7 @@ for dev in ${DEVICES}; do
                 logerr "Device ${dev} does not exist in device.lst. Device will be skipped."
         else
                 if [ -n "${PARALLEL}" ]; then
-			adb_agnostic ${id} ${CMD} &> /tmp/adb-parallel-${dev}.out &
+			adb_agnostic ${id} ${CMD} &> /tmp/adb-parallel-${dev}-${MYPID}.out &
 		else
 			adb_agnostic ${id} ${CMD}
 		fi
@@ -76,7 +91,7 @@ if [ -n "${PARALLEL}" ]; then
 	wait
 	# print the logs secuentially
 	for dev in ${DEVICES}; do
-		cat /tmp/adb-parallel-${dev}.out
-		rm /tmp/adb-parallel-${dev}.out &>/dev/null
+		cat /tmp/adb-parallel-${dev}-${MYPID}.out
+		rm /tmp/adb-parallel-${dev}-${MYPID}.out &>/dev/null
 	done
 fi

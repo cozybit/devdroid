@@ -29,15 +29,15 @@ function logerr() {
 	echo "[STDERR]" ${*} 1>&2
 }
 
-# validate a list of given devices and returns a formatted list. The returned
-# list is just the list of devices separated by spaces.
-# Check the return value, to make sure the returned list is valid or not. If 0,
+# validate the compressed list of devices and expand it in a formatted complete
+# list. The returned list is just the entire list of devices separated by spaces.
+# Check the return value to make sure the returned list is valid or not. If 0,
 # the list is valid. If 1, list is not valid.
-# Valid input formats:
-#   CB1,CB2,CB3 | all | CB01:CB10
-# usage: validate_devices <devices>
-# example: validate_devices CB1,CB2:CB8,CB15:CB20,CB99
-function validate_devices() {
+# Valid formats for the compressed list:
+#   all | CB1,CB2,CB3 and CB01:CB10
+# usage: expand_compressed_list <devices>
+# example: expand_compressed_list CB1,CB2:CB8,CB15:CB20,CB99
+function expand_compressed_list() {
 
 	_DEVS=${1}
 
@@ -72,6 +72,21 @@ function dev_range2list () {
 	else
 		echo "" && return 1
 	fi
+}
+
+# verifies the exitance of all the device names in devices.lst.
+# usage: validate_dev_name_list
+function validate_dev_name_list () {
+	_LIST=${*}
+	#evaluate there are no duplicates
+	_TOTAL=`echo ${_LIST} | tr ' ' '\n' | wc -l`
+	_UNIQ=`echo ${_LIST} | tr ' ' '\n' | uniq | wc -l`
+	[ ${_TOTAL} -ne ${_UNIQ} ] && return 1;
+	#varify all device names are valid
+	for name in ${_LIST}; do
+		[ -z "`name2id ${name}`" ] && return 1
+	done
+	return 0
 }
 
 # adb_agnostic checks the adb status (usb or tcpip) of the device before
@@ -201,14 +216,6 @@ function is_tcpip_adb_unconnected() {
 	return 1
 }
 
-# check if the device ${1} is in fastboot mode
-# usage: is_fastboot_mode <device_id>
-function is_fastboot_mode () {
-        _ID=${1}
-        fastboot devices | grep ${_ID} | grep fastboot &>/dev/null && return 0
-        return 1
-}
-
 # check if the device ${1} is in tcpip mode
 # usage: is_tcpip_adb <device_id>
 function is_tcpip_adb () {
@@ -223,6 +230,14 @@ function is_tcpip_adb () {
 	fi
 	
 	return 1
+}
+
+# check if the device ${1} is in fastboot mode
+# usage: is_fastboot_mode <device_id>
+function is_fastboot_mode () {
+        _ID=${1}
+        fastboot devices | grep ${_ID} | grep fastboot &>/dev/null && return 0
+        return 1
 }
 
 # returns the device ID when a single device is connected to adb or fastboot
@@ -267,7 +282,7 @@ function cat_conf () {
 function name2id () {
 	_DEV_NAME=${1}
 	_DEV_ID=`cat_conf | grep "${_DEV_NAME};" 2>/dev/null | cut -d";" -f2`
-	[ -z "${_DEV_ID}" ] && { echo "WARNING: Device ${_DEV_NAME} has no ID assigned in devices.lst.">/dev/stderr ; return 1; }
+	[ -z "${_DEV_ID}" ] && { logerr "WARNING: Device ${_DEV_NAME} has no ID assigned in devices.lst."; return 1; }
 	echo -n ${_DEV_ID}
 }
 
@@ -277,7 +292,7 @@ function name2id () {
 function id2name () {
 	_DEV_ID=${1}
 	_DEV_NAME=`cat_conf | grep "${_DEV_ID};" 2>/dev/null | cut -d";" -f1`
-	[ -z "${_DEV_NAME}" ] && { echo "WARNING: Device ${_DEV_ID} has no name assigned in devices.lst.">/dev/stderr ; return 1; }
+	[ -z "${_DEV_NAME}" ] && { logerr "WARNING: Device ${_DEV_ID} has no name assigned in devices.lst."; return 1; }
 	echo -n ${_DEV_NAME}
 }
 
@@ -291,7 +306,7 @@ function id2ips () {
 	[ -n "${_DEV_WIRED_IP}" ] && _IP_LIST+="${_DEV_WIRED_IP},"
         #TODO we should do this with the mesh ctl IP too and delete it from the devices.lst
         _IP_LIST+=`cat_conf | grep "${_DEV_ID};" 2>/dev/null | cut -d";" -f3`
-	[ -z "${_IP_LIST}" ] && { echo "WARNING: Device ${_DEV_ID} has no IP assigned in devices.lst.">/dev/stderr ; return 1; }
+	[ -z "${_IP_LIST}" ] && { logerr "WARNING: Device ${_DEV_ID} has no IP assigned in devices.lst."; return 1; }
         echo -n ${_IP_LIST}
 }
 
@@ -301,7 +316,7 @@ function id2ips () {
 function ip2id () {
         _DEV_IP=${1}
         _DEV_ID=`cat_conf | grep ${_DEV_IP} 2>/dev/null | cut -d";" -f2`
-	[ -z "${_DEV_ID}" ] && { echo "WARNING: IP ${_DEV_IP} is not present in devices.lst.">/dev/stderr; return 1; }
+	[ -z "${_DEV_ID}" ] && { logerr "WARNING: IP ${_DEV_IP} is not present in devices.lst."; return 1; }
         echo -n ${_DEV_ID}
 }
 
@@ -311,7 +326,7 @@ function ip2id () {
 function ip2name () {
         _DEV_IP=${1}
         _DEV_NAME=`cat_conf | grep ${_DEV_IP} 2>/dev/null | cut -d";" -f1`
-	[ -z "${_DEV_NAME}" ] && { echo "WARNING: IP ${_DEV_IP} is not present in devices.lst.">/dev/stderr; return 1; }
+	[ -z "${_DEV_NAME}" ] && { logerr "WARNING: IP ${_DEV_IP} is not present in devices.lst."; return 1; }
         echo -n ${_DEV_NAME}
 }
 
@@ -321,7 +336,7 @@ function ip2name () {
 function name2mac () {
 	_DEV_NAME=${1}
 	_DEV_MAC=`cat_conf | grep "${_DEV_NAME};" 2>/dev/null | cut -d";" -f4`
-	[ -z "${_DEV_MAC}" ] && { echo "WARNING: Device ${_DEV_IP} has no MAC for its mesh iface in devices.lst.">/dev/stderr; return 1; }
+	[ -z "${_DEV_MAC}" ] && { logerr "WARNING: Device ${_DEV_IP} has no MAC for its mesh iface in devices.lst."; return 1; }
 	echo -n ${_DEV_MAC}
 }
 

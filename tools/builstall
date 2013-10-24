@@ -50,7 +50,8 @@ while getopts "hirs:t:" options; do
     esac
 done
 
-DEVICES=`validate_devices ${DEVICES}` || die "ERROR: specified devices are not valid. Valid format: -s CB1,CB2:CB8,CB15:CB20,CB99"
+DEVICES=`expand_compressed_list ${DEVICES}` || die "ERROR: format of the devs list is not valid. Valid format: -s CB1,CB2:CB8 or -s all"
+validate_dev_name_list ${DEVICES} || die "ERROR: the list of input devices is not valid (non-exitant dev? duplicated?)."
 
 [ "${BUILD_TYPE}" != "debug" -a "${BUILD_TYPE}" != "release" ] && die "ERROR: specify a valid build type: debug/release. Aborting."
 
