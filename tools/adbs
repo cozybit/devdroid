@@ -21,6 +21,7 @@ Usage: $prog -s <DEVICE_SPEC> [ -p ] <adb_commands and options>
 
 Options:
     -s <DEVICE_SPEC>       List of devices to use
+    -i                     Print device ID and exit
     -p                     Run in parallel
 
 Where DEVICE_SPEC can be
@@ -39,8 +40,9 @@ EOF
 )
 
 POS=0
-while getopts "chs:p" opt; do
+while getopts "ichs:p" opt; do
     case ${opt} in
+        i ) PRINT_DEV_ID=1;;
         c ) CHECK="yes";;
         s ) DEVICES=${OPTARG};;
         p ) PARALLEL="yes";;
@@ -57,6 +59,14 @@ CMD=${*}
 
 DEVICES=`expand_compressed_list ${DEVICES}` || die "ERROR: format of the devs list is not valid. Valid format: -s CB1,CB2:CB8 or -s all."
 validate_dev_name_list ${DEVICES} || die "ERROR: the list of input devices is not valid (non-exitant dev? duplicated?)."
+
+if [[ -n $PRINT_DEV_ID ]]; then
+    for dev in ${DEVICES}; do
+        id=`name2id ${dev}`
+        echo $id
+    done
+    exit 0
+fi
 
 if [ -n "${CHECK}" ]; then
 	_devs=`echo ${DEVICES} | wc -w`
