@@ -281,7 +281,7 @@ function cat_conf () {
 # usage: name2id <device_name>
 function name2id () {
 	_DEV_NAME=${1}
-	_DEV_ID=`cat_conf | grep "${_DEV_NAME};" 2>/dev/null | cut -d";" -f2`
+	_DEV_ID=`cat_conf | grep -w ${_DEV_NAME} 2>/dev/null | cut -d";" -f2`
 	[ -z "${_DEV_ID}" ] && { logerr "WARNING: Device ${_DEV_NAME} has no ID assigned in devices.lst."; return 1; }
 	echo -n ${_DEV_ID}
 }
