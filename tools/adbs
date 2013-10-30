@@ -16,7 +16,9 @@ source `dirname ${0}`/common.sh
 
 MYPID=${BASHPID}
 prog=`basename $0`
-usage=$(cat <<EOF
+
+usage() {
+    cat <<EOF
 Usage: $prog -s <DEVICE_SPEC> [ -p ] <adb_commands and options>
 
 Options:
@@ -37,7 +39,7 @@ Examples:
 
     $prog -s CB10:CB15 -p shell am instrument -w tests/android.test.InstrumentationTestRunner
 EOF
-)
+}
 
 POS=0
 while getopts "ichs:p" opt; do
@@ -46,8 +48,7 @@ while getopts "ichs:p" opt; do
         c ) CHECK="yes";;
         s ) DEVICES=${OPTARG};;
         p ) PARALLEL="yes";;
-        h ) echo ${usage}
-            exit 0;;
+        h ) usage; exit 0;;
         * ) die "ERROR: invalid adbs option. Check the help (-h).";;
     esac
     POS=$((POS+1))
