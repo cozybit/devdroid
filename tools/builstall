@@ -11,21 +11,21 @@ source `dirname ${0}`/common.sh
 
 # extract android:name value of tha activity with the action.MAIN intent filter
 function extractMainActivityName () {
-	i=1
-	grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep activity &> /dev/null
-	while  [ $? -ne 0 -a ${i} -lt 100  ] ; do
-		i=$((i+1))
-		grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep -e "<activity" &>/dev/null
-	done
+    i=1
+    grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep activity &> /dev/null
+    while  [ $? -ne 0 -a ${i} -lt 100  ] ; do
+        i=$((i+1))
+        grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep -e "<activity" &>/dev/null
+    done
 
-	[ ${i} -eq 100 ] && { echo ""; return 1; }
+    [ ${i} -eq 100 ] && { echo ""; return 1; }
 
-	TST=`grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep -v android.intent.action.MAIN | grep android:name`
+    TST=`grep -B ${i} android.intent.action.MAIN AndroidManifest.xml | grep -v android.intent.action.MAIN | grep android:name`
 
-	#TODO: extract the value android:name properly!! Dont' commit & push this until this is FIXED!!!
-	TST=`echo ${TST} | cut -d"=" -f2`
-	echo ${TST//\"/}
-	return 0
+    #TODO: extract the value android:name properly!! Dont' commit & push this until this is FIXED!!!
+    TST=`echo ${TST} | cut -d"=" -f2`
+    echo ${TST//\"/}
+    return 0
 }
 
 BUILD_TYPE="debug"
@@ -34,13 +34,13 @@ BUILD_TYPE="debug"
 usage="$0 [ -s <device1>,<device2>.. ] [ -a ] [ -i ] [ -r ] [ -t ] [ -h ]"
 while getopts "hirs:t:" options; do
     case $options in
-	i ) INSTALL="yes";;
+        i ) INSTALL="yes";;
         r ) LAUNCH="yes";;
         s ) DEVICES=${OPTARG};;
-	t ) BUILD_TYPE=${OPTARG};;
+        t ) BUILD_TYPE=${OPTARG};;
         h ) echo ${usage}
-	    echo "-i       skip building step, just install."
-	    echo "-s       list of target devices (-s CB1,CB2:CB8,CB15:CB20,CB99). For all connected use \"all\"."
+            echo "-i       skip building step, just install."
+            echo "-s       list of target devices (-s CB1,CB2:CB8,CB15:CB20,CB99). For all connected use \"all\"."
             echo "-r       run the app just after installing it."
             echo "-t       type of build: debug/release."
             echo "-h       print this message."
@@ -57,9 +57,9 @@ validate_dev_name_list ${DEVICES} || die "ERROR: the list of input devices is no
 
 # build the project
 if [ -z "${INSTALL}" ]; then
-	ant-dev ${BUILD_TYPE} || exit 1
+    ant-dev ${BUILD_TYPE} || exit 1
 else
-	echo "Skip building the project..."
+    echo "Skip building the project..."
 fi
 
 # get the package name from the manifest
@@ -67,19 +67,19 @@ PKG_NAME=`extractAttributeXML AndroidManifest.xml /manifest package`
 
 # iterate through all the devices
 for dev in ${DEVICES}; do
-	id=`name2id ${dev}`
-	app=`ls bin/*-${BUILD_TYPE}.apk`
-	echo "[${dev}] Installing ${app} (${BUILD_TYPE} version)..."
-	OUT=`adb_agnostic ${id} install -r ${app}`
-	# check if it failed because of inconsistent certificates.
-	if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
-		echo "[${dev}] UNINSTALLING app....."
-		OUT=`adb_agnostic ${id} uninstall ${PKG_NAME}`
-		[[ "${OUT}" == *Failure* ]] && { echo "[${dev}] ERROR: can't install ${app} (${BUILD_TYPE}). Is it a system app? Skipping device."; continue; }
-		adb_agnostic ${id} install ${app}
-	fi
-	if [ "${LAUNCH}" == "yes" ]; then
-		MAIN_ACTIVITY=`extractMainActivityName`
-		[ $? -eq 0 ] && adb_agnostic ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
-	fi
+    id=`name2id ${dev}`
+    app=`ls bin/*-${BUILD_TYPE}.apk`
+    echo "[${dev}] Installing ${app} (${BUILD_TYPE} version)..."
+    OUT=`adb_agnostic ${id} install -r ${app}`
+    # check if it failed because of inconsistent certificates.
+    if [[ "${OUT}" == *INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES* ]]; then
+        echo "[${dev}] UNINSTALLING app....."
+        OUT=`adb_agnostic ${id} uninstall ${PKG_NAME}`
+        [[ "${OUT}" == *Failure* ]] && { echo "[${dev}] ERROR: can't install ${app} (${BUILD_TYPE}). Is it a system app? Skipping device."; continue; }
+        adb_agnostic ${id} install ${app}
+    fi
+    if [ "${LAUNCH}" == "yes" ]; then
+        MAIN_ACTIVITY=`extractMainActivityName`
+        [ $? -eq 0 ] && adb_agnostic ${id} shell am start -n ${PKG_NAME}/${MAIN_ACTIVITY}
+    fi
 done

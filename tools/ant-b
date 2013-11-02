@@ -15,9 +15,9 @@ source `dirname ${0}`/common.sh
 
 # source the config variables
 if [ -e ${ANT_CONF} ]; then
-        source ${ANT_CONF}
+    source ${ANT_CONF}
 else
-        die "ERROR: config file ${ANT_CONF} does not exist. Aborting."
+    die "ERROR: config file ${ANT_CONF} does not exist. Aborting."
 fi
 
 ant -Dkey.store=${KEYSTORE_PATH} -Dkey.store.password=${KEYSTORE_PASSWD} -Dkey.alias=${KEY_ALIAS} -Dkey.alias.password=${KEY_ALIAS_PASSWD} -Dsdk.dir=${ANDROID_SDK} $*

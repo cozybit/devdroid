@@ -25,51 +25,47 @@ source $(dirname ${0})/common.sh
 
 # check that all the needed parameters are valid
 function check_parameters () {
-
-[ -z "${MESH_ID}" -o -z "${WIFACE}" -o -z "${CHANNEL}" ] && die "ERROR: make sure that you've configured all the mesh parameters in the main config file. Aborting."
-
-[ -z "${ACTION}" ] && die "ERROR: you need to provide an action (-a <up/down>). Aborting."
-
-ip link show ${WIFACE} &>/dev/null || die "ERROR: the ${WIFACE} interface does not exist. Aborting."
-
+    [ -z "${MESH_ID}" -o -z "${WIFACE}" -o -z "${CHANNEL}" ] && die "ERROR: make sure that you've configured all the mesh parameters in the main config file. Aborting."
+    [ -z "${ACTION}" ] && die "ERROR: you need to provide an action (-a <up/down>). Aborting."
+    ip link show ${WIFACE} &>/dev/null || die "ERROR: the ${WIFACE} interface does not exist. Aborting."
 }
 
 function tearup () {
-	sudo iw ${WIFACE} interface add ${MESH_IFACE} type mesh || \
-		 die "ERROR: problem when creating the mesh interface on ${WIFACE}. Is your machine mesh enabled? Please, read the comments within this script for more info. Aborting."
-	sudo ip link set dev ${WIFACE} down &> /dev/null
-	sudo iw ${MESH_IFACE} set channel ${CHANNEL} ${HT_MODE} || die "ERROR: problem when setting the channel. Aborting."
-	LOCAL_IP=`mac2ip $(if2mac ${WIFACE})`
-	sudo ip address add dev ${MESH_IFACE} ${LOCAL_IP}/${NETMASK} broadcast ${BCAST_IP} || \
-		die "ERROR: problem when configuring the ${MESH_IFACE} interface. Aborting." 
-	sudo ip link set dev ${MESH_IFACE} up || die "ERROR: problem when bringing the ${MESH_IFACE} interface up. Aborting."
-	[ -n  "${TTL}" ] && sudo iw dev ${MESH_IFACE} set mesh_param mesh_ttl ${TTL}
-	sudo iw ${MESH_IFACE} mesh join ${MESH_ID} vendor_sync on || die "ERROR: problem joining the mesh ${MESH_ID}. Aborting."
+    sudo iw ${WIFACE} interface add ${MESH_IFACE} type mesh || \
+        die "ERROR: problem when creating the mesh interface on ${WIFACE}. Is your machine mesh enabled? Please, read the comments within this script for more info. Aborting."
+    sudo ip link set dev ${WIFACE} down &> /dev/null
+    sudo iw ${MESH_IFACE} set channel ${CHANNEL} ${HT_MODE} || die "ERROR: problem when setting the channel. Aborting."
+    LOCAL_IP=`mac2ip $(if2mac ${WIFACE})`
+    sudo ip address add dev ${MESH_IFACE} ${LOCAL_IP}/${NETMASK} broadcast ${BCAST_IP} || \
+        die "ERROR: problem when configuring the ${MESH_IFACE} interface. Aborting." 
+    sudo ip link set dev ${MESH_IFACE} up || die "ERROR: problem when bringing the ${MESH_IFACE} interface up. Aborting."
+    [ -n  "${TTL}" ] && sudo iw dev ${MESH_IFACE} set mesh_param mesh_ttl ${TTL}
+    sudo iw ${MESH_IFACE} mesh join ${MESH_ID} vendor_sync on || die "ERROR: problem joining the mesh ${MESH_ID}. Aborting."
 }
 
 function teardown () {
-	ip link show ${MESH_IFACE} &> /dev/null
-	if [ $? -eq 0 ]; then
-                sudo ip link set dev ${MESH_IFACE} down &> /dev/null || \
-			 die "ERROR: problem when bringing down the ${MESH_IFACE} interface. Aborting."
-                sudo iw dev ${MESH_IFACE} del &> /dev/null || \
-			die "ERROR: problem when deleting the ${MESH_IFACE} interface. Aborting."
-	fi
+    ip link show ${MESH_IFACE} &> /dev/null
+    if [ $? -eq 0 ]; then
+        sudo ip link set dev ${MESH_IFACE} down &> /dev/null || \
+            die "ERROR: problem when bringing down the ${MESH_IFACE} interface. Aborting."
+        sudo iw dev ${MESH_IFACE} del &> /dev/null || \
+            die "ERROR: problem when deleting the ${MESH_IFACE} interface. Aborting."
+    fi
 }
 
 #block node1 from node2 and viceversa
 # usage: block node1 node2
 function block {
-	if [ "${1}" = "" ]; then echo "block: missing nodes"; exit 1; fi
-	if [ "${2}" = "" ]; then echo "block: missing one node"; exit 1; fi
-	
-	_ID[0]=`name2id ${1}`
-	_ID[1]=`name2id ${2}`
+    if [ "${1}" = "" ]; then echo "block: missing nodes"; exit 1; fi
+    if [ "${2}" = "" ]; then echo "block: missing one node"; exit 1; fi
 
-	_MAC=`name2mac ${2}`
-	adb_agnostic ${_ID[0]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
-	_MAC=`name2mac ${1}`
-	adb_agnostic ${_ID[1]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
+    _ID[0]=`name2id ${1}`
+    _ID[1]=`name2id ${2}`
+
+    _MAC=`name2mac ${2}`
+    adb_agnostic ${_ID[0]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
+    _MAC=`name2mac ${1}`
+    adb_agnostic ${_ID[1]} shell iw dev mesh0 station set ${_MAC} plink_action block #&>/dev/null
 }
 
 #name of the mesh iface
@@ -83,18 +79,18 @@ FLUSH=0
 usage="$0 [-a <up/down/block> ] [ -i <meshid> ] [ -c <channel> ] [ -d <devices_to_block> ] [ -f (flush) ] [ -t <ht_mode> ] [ -w <w_interface> ] [ -r <retrasnmissions/TTL> ]  [-h]"
 while getopts "a:i:c:d:ft:w:hr:" options; do
     case $options in
-	a ) ACTION=${OPTARG};;
-	i ) MESH_ID=${OPTARG};;
+        a ) ACTION=${OPTARG};;
+        i ) MESH_ID=${OPTARG};;
         c ) CHANNEL=${OPTARG};;
-	d ) DEVICES=${OPTARG};;
-	f ) FLUSH=1;;
+        d ) DEVICES=${OPTARG};;
+        f ) FLUSH=1;;
         t ) HT_MODE=${OPTARG};;
-	w ) WIFACE=${OPTARG};;
-	r ) TTL=${OPTARG};;
+        w ) WIFACE=${OPTARG};;
+        r ) TTL=${OPTARG};;
         h ) echo ${usage}
             exit 1;;
         * ) echo this is the option: ${option}
-	    echo ${usage}
+            echo ${usage}
             exit 1;;
     esac
 done
@@ -103,29 +99,29 @@ done
 check_parameters
 
 if [ ${ACTION} == "up" ]; then
-	[ ${FLUSH} -eq 1 ] && teardown
-	ip link show ${MESH_IFACE} &> /dev/null && die "ERROR: ${MESH_IFACE} interface already exists. Aborting."
-	tearup
+    [ ${FLUSH} -eq 1 ] && teardown
+    ip link show ${MESH_IFACE} &> /dev/null && die "ERROR: ${MESH_IFACE} interface already exists. Aborting."
+    tearup
 elif [ ${ACTION} == "down" ]; then
-	teardown
+    teardown
 elif [ ${ACTION} == "block" ]; then
-	ip link show ${MESH_IFACE} &> /dev/null || die "ERROR: ${MESH_IFACE} interface is not up. Aborting."
-	[ -z "${DEVICES}" ] && die "ERROR: you need to provide the devices to block (-d <dev1,dev2>). Aborting."
-	DEVICES=${DEVICES//,/" "}
-	# iterate through all the devices provided
-	for dev in ${DEVICES}; do
-		_MAC=`name2mac ${dev}`
-        	#if _MAC is empty, then dev must be the mac
-	        [ -z "${_MAC}" ] && _MAC=${dev}
-		sudo iw dev ${MESH_IFACE} station set ${_MAC} plink_action block #&>/dev/null
-	done
-#This routine should go in a script that manages the android devices. For now we'll call it remote block
+    ip link show ${MESH_IFACE} &> /dev/null || die "ERROR: ${MESH_IFACE} interface is not up. Aborting."
+    [ -z "${DEVICES}" ] && die "ERROR: you need to provide the devices to block (-d <dev1,dev2>). Aborting."
+    DEVICES=${DEVICES//,/" "}
+    # iterate through all the devices provided
+    for dev in ${DEVICES}; do
+        _MAC=`name2mac ${dev}`
+        #if _MAC is empty, then dev must be the mac
+        [ -z "${_MAC}" ] && _MAC=${dev}
+        sudo iw dev ${MESH_IFACE} station set ${_MAC} plink_action block #&>/dev/null
+    done
+    #This routine should go in a script that manages the android devices. For now we'll call it remote block
 elif [ ${ACTION} == "rblock" ]; then
-	ip link show ${MESH_IFACE} &> /dev/null || die "ERROR: ${MESH_IFACE} interface is not up. Aborting."
-	[ -z "${DEVICES}" ] && die "ERROR: you need to provide the devices to block (-d <dev1,dev2>). Aborting."
-	IFS=',' read -a NODES <<< "${DEVICES}"
-	echo "about to block ${NODES[0]} and ${NODES[1]}"
-	block ${NODES[0]} ${NODES[1]}
+    ip link show ${MESH_IFACE} &> /dev/null || die "ERROR: ${MESH_IFACE} interface is not up. Aborting."
+    [ -z "${DEVICES}" ] && die "ERROR: you need to provide the devices to block (-d <dev1,dev2>). Aborting."
+    IFS=',' read -a NODES <<< "${DEVICES}"
+    echo "about to block ${NODES[0]} and ${NODES[1]}"
+    block ${NODES[0]} ${NODES[1]}
 else
-	die "ERROR: unsupported action. Aborting."
+    die "ERROR: unsupported action. Aborting."
 fi

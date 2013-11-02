@@ -46,7 +46,7 @@ cp ${FILE} /tmp/${FILE}-${MYPID} || die "ERROR: could not create a copy of ${FIL
 TIME=`date +"%m-%d-%y_%H:%M"`
 # extend the version name. Format: <original_version_name>-dev-<branch_name>-<heads_sha1>-<user>-<date_time>
 sed -i -e "s/${VER_ATTR}=\"${INIT_VERSION_NAME}\"/${VER_ATTR}=\"${VERSION_NAME}-dev-${BRANCH_NAME}-${HEAD_SHA} ${USER}@${HOSTNAME} ${TIME}\"/" ${FILE} || \
-	die "ERROR: could not extend the version name in ${FILE}. Aborting."
+    die "ERROR: could not extend the version name in ${FILE}. Aborting."
 
 # build the app 
 $(dirname $0)/ant-b $*

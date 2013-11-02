@@ -7,17 +7,17 @@ source `dirname ${0}`/common.sh
 usage="$0 [ -s <device_name> ] [ -p <package_name> ] [ -c ] [ -h ]"
 while getopts "cs:p:h" options; do
     case $options in
-	c ) CLASSIC="yes";;
+        c ) CLASSIC="yes";;
         s ) DEV_NAME=${OPTARG};;
         p ) PKG_NAME=${OPTARG};;
         h ) echo ${usage}
-	    echo "-s          target device/s (ie: -s CB01,CB02)"
-            echo "-p          name of the package (ie: -p com.abc.d)"
-            echo "            if AndroidManifest available, -p argument is not necessary"
-            echo "-c          classic mode (non colored)"
+            echo "-s    target device/s (ie: -s CB01,CB02)"
+            echo "-p    name of the package (ie: -p com.abc.d)"
+            echo "      if AndroidManifest available, -p argument is not necessary"
+            echo "-c    classic mode (non colored)"
             exit 1;;
         * ) echo "Invalid option!"
-	    echo ${usage}
+            echo ${usage}
             exit 1;;
     esac
 done
@@ -30,7 +30,7 @@ done
 ID=`name2id ${DEV_NAME}`
 
 if [ -z "${CLASSIC}" ]; then
-	adbs -s ${ID} logcat | proclogcat ${PKG_NAME} | coloredlogcat.py
+    adbs -s ${ID} logcat | proclogcat ${PKG_NAME} | coloredlogcat.py
 else
-	adbs -s ${ID} logcat | proclogcat ${PKG_NAME}
+    adbs -s ${ID} logcat | proclogcat ${PKG_NAME}
 fi
