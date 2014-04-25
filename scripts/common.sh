@@ -343,7 +343,7 @@ function name2mac () {
 function genIpFromMac () {
     _NET=${1}
     _MAC=`echo ${2} | tr '[:lower:]' '[:upper:]'`
-    [ -z ${_MAC} ] && return 1
+    [ -z "${_MAC}" ] && return 1
     _HEX=(${_MAC//:/" "})
     _IP=${_NET}
     for i in 3 4 5; do
@@ -358,9 +358,10 @@ function genIpFromMac () {
 # usage: genIpFromMac <NET> <id>
 function genIpFromId () {
     _NET=${1}
-    _HEX=( `echo ${2: -6} | tr '[:lower:]' '[:upper:]' | fold -w2` )
+    _MD5=`echo -n ${2} | md5sum | cut -d" " -f1`
+    _HEX=( `echo ${_MD5: -6} | tr '[:lower:]' '[:upper:]' | fold -w2` )
     #_MAC=`echo ${2} | tr '[:lower:]' '[:upper:]'`
-    [ -z ${_HEX} ] && return 1
+    [ -z "${_HEX}" ] && return 1
     _IP=${_NET}
     for i in 0 1 2; do
         _DEC=`echo "ibase=16; ${_HEX[$i]}" | bc`
@@ -394,10 +395,10 @@ function git.branch () {
 [ "${DEBUG}" == "1" ] && set -x
 
 # check if the main environment variable is set. It defines the top directory. Otherwise, abort
-[ -z ${DEVDROID} ] && die "ERROR: The environment variable DEVDROID is not set. Aborting."
+[ -z "${DEVDROID}" ] && die "ERROR: The environment variable DEVDROID is not set. Aborting."
 
 # allow user to override configuration file in environment
-[ -z ${DEVDROID_CONF} ] && DEVDROID_CONF=${DEVDROID}/config/devdroid.conf
+[ -z "${DEVDROID_CONF}" ] && DEVDROID_CONF=${DEVDROID}/config/devdroid.conf
 
 # source the config variables
 if [ -e ${DEVDROID_CONF} ]; then

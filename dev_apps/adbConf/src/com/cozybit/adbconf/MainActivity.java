@@ -1,5 +1,6 @@
 package com.cozybit.adbconf;
 
+import java.io.UnsupportedEncodingException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
@@ -45,6 +46,10 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		ethConfigButton = (Button) findViewById(R.id.eth_button);
+		String md5Serial = MD5(Build.SERIAL);
+		Log.d("FUCK", "Build.SERIAL: " + Build.SERIAL);
+		Log.d("FUCK", "md5Serial: " + md5Serial);
+		Log.d("FUCK", "IP: " + generateIpFromStrMd5(NET_IP, Build.SERIAL) );
 	}
 	
 	@Override
@@ -90,33 +95,51 @@ public class MainActivity extends Activity {
 		return true;
 	}
 	
+	//configure the Ethernet iface
 	private boolean configEthernet() {
-				
+
+		String ip = generateIpFromStrMd5(NET_IP, Build.SERIAL);
+
+		if(ip != null) { 
+			try {
+				CmdOutput output = Shell.sudo("ip address add dev " + IFACE_NAME + " " + ip.toString() + "/" + NET_MASK);
+				if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
+				if ( output.exitValue != 0 ) { promptDialog(IPSET_ERROR_DIALOG, output.STDERR); return false; }
+				output = Shell.sudo("netcfg " + IFACE_NAME + " up");
+				if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
+				if ( output.exitValue != 0 ) { promptDialog(NETUP_ERROR_DIALOG, output.STDERR); return false; }
+				return true;
+			} catch (ShellException e) {
+				e.printStackTrace();
+				promptDialog(SHELL_ERROR_DIALOG, null);
+			}
+		}
+
+		return false;
+	}
+	
+	/* This function will generate an IP based on:
+	 *   - A given net prefix
+	 *   - The last 6characters of the md5sum of any str
+	 */
+	private String generateIpFromStrMd5(int netPrefix, String str) {
+		
+		if(str == null)
+			return null;
+		
 		StringBuffer ip = new StringBuffer();
-		ip.append(NET_IP);
+		ip.append(netPrefix);
 		//get the first 6 characters of the serial number to create the ip
-		String serial = Build.SERIAL.substring( (Build.SERIAL.length()-6), Build.SERIAL.length() );
+		String md5Serial = MD5(str);
+		String serial = md5Serial.substring( (md5Serial.length()-6), md5Serial.length() );
 		serial = serial.toLowerCase();		
 		for (int offset = 0; offset < serial.length(); offset=offset+2 ) {
 			String segment = serial.substring(offset, offset+2);
 			ip.append(".");
 			ip.append(Integer.parseInt(segment, 16));
 		}
-				
-		try {
-			CmdOutput output = Shell.sudo("ip address add dev " + IFACE_NAME + " " + ip.toString() + "/" + NET_MASK);
-			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
-			if ( output.exitValue != 0 ) { promptDialog(IPSET_ERROR_DIALOG, output.STDERR); return false; }
-			output = Shell.sudo("netcfg " + IFACE_NAME + " up");
-			if( output == null ) { promptDialog(NO_OUTPUT_DIALOG, null); return false; }
-			if ( output.exitValue != 0 ) { promptDialog(NETUP_ERROR_DIALOG, output.STDERR); return false; }
-		} catch (ShellException e) {
-			e.printStackTrace();
-			promptDialog(SHELL_ERROR_DIALOG, null);
-			return false;
-		}
-		
-		return true;
+
+		return ip.toString();
 	}
 	
     //check if the mesh interface is up
@@ -131,6 +154,22 @@ public class MainActivity extends Activity {
 			e.printStackTrace();
 		}
     	return false;
+    }
+    
+    private String MD5(String md5) {
+    	try {
+    		java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+	    	byte[] array = md.digest( md5.getBytes("UTF-8") );
+	    	StringBuffer sb = new StringBuffer();
+	    	for (int i = 0; i < array.length; ++i)
+	    		sb.append(Integer.toHexString((array[i] & 0xFF) | 0x100).substring(1,3));
+	    	return sb.toString();
+    	} catch (java.security.NoSuchAlgorithmException e) {
+    		e.printStackTrace();
+    	} catch (UnsupportedEncodingException e) {
+    		e.printStackTrace();
+		}
+    	return null;
     }
 
 	private void promptDialog(int dialogId, String msg) {
