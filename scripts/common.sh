@@ -59,13 +59,16 @@ function expand_compressed_list() {
 # usage: dev_range2list() CBX:CBY
 function dev_range2list () {
     if [[ "${1}" =~ ":"  ]]; then
-        _RANGE=${1//CB/}
         _OLD_IFS="${IFS}"
         IFS=":"
+        _NAME=${1//[0-9]/}
+        _NAME=( ${_NAME} )
+        _NAME=${_NAME[0]}
+        _RANGE=${1//${_NAME}/}
         _RANGE=( ${_RANGE} )
         IFS="${_OLD_IFS}"
         [ "${_RANGE[0]}" -lt "${_RANGE[1]}" ] || { logerr "Invalid range of devices -> ${1}. Right format: CB5:CB10"; return 1; }
-        _LIST="CB`seq -s " CB" ${_RANGE[0]} ${_RANGE[1]}`"
+        _LIST="${_NAME}`seq -s " ${_NAME}" ${_RANGE[0]} ${_RANGE[1]}`"
         echo ${_LIST} && return 0
     else
         echo "" && return 1
